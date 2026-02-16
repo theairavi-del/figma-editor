@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useEditorStore } from '../../store/editorStore';
 import './PropertiesPanel.css';
 
@@ -114,33 +114,17 @@ export function PropertiesPanel() {
     saveToHistory
   } = useEditorStore();
 
-  const [localStyles, setLocalStyles] = useState<Record<string, string>>({});
-  const [localText, setLocalText] = useState('');
-
-  // Sync local state when selected element changes
-  useEffect(() => {
-    if (selectedElementData) {
-      setLocalStyles(selectedElementData.styles || {});
-      setLocalText(selectedElementData.textContent || '');
-    } else {
-      setLocalStyles({});
-      setLocalText('');
-    }
-    // Only re-sync when element ID changes to avoid overwriting user input during editing
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedElementData?.id]);
+  // Use derived state pattern - local state mirrors props but doesn't need effect
+  const localStyles = selectedElementData?.styles ?? {};
+  const localText = selectedElementData?.textContent ?? '';
 
   const handleStyleChange = useCallback((property: string, value: string) => {
     if (!selectedElementId) return;
-    
-    setLocalStyles(prev => ({ ...prev, [property]: value }));
     updateElementStyle(selectedElementId, property, value);
   }, [selectedElementId, updateElementStyle]);
 
   const handleTextChange = useCallback((value: string) => {
     if (!selectedElementId) return;
-    
-    setLocalText(value);
     updateElementText(selectedElementId, value);
   }, [selectedElementId, updateElementText]);
 

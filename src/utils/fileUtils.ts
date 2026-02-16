@@ -181,6 +181,8 @@ export function extractElementData(element: Element): ElementData | null {
     }
   }
 
+  const rect = element.getBoundingClientRect();
+
   return {
     id: visualId,
     tagName: element.tagName.toLowerCase(),
@@ -191,7 +193,16 @@ export function extractElementData(element: Element): ElementData | null {
     children: Array.from(element.children)
       .map(child => extractElementData(child))
       .filter((child): child is ElementData => child !== null),
-    rect: element.getBoundingClientRect(),
+    rect: {
+      x: rect.x,
+      y: rect.y,
+      width: rect.width,
+      height: rect.height,
+      top: rect.top,
+      left: rect.left,
+      right: rect.right,
+      bottom: rect.bottom
+    },
     parentId: element.parentElement?.getAttribute('data-visual-id') || undefined,
     index: Array.from(element.parentElement?.children || []).indexOf(element)
   };

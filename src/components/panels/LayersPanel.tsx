@@ -134,7 +134,16 @@ export function LayersPanel() {
         children: Array.from(el.children)
           .map(child => processElement(child))
           .filter((child): child is ElementData => child !== null),
-        rect,
+        rect: {
+          x: rect.x,
+          y: rect.y,
+          width: rect.width,
+          height: rect.height,
+          top: rect.top,
+          left: rect.left,
+          right: rect.right,
+          bottom: rect.bottom
+        },
         parentId: el.parentElement?.getAttribute('data-visual-id') || undefined,
         index: Array.from(el.parentElement?.children || []).indexOf(el)
       };
@@ -149,24 +158,19 @@ export function LayersPanel() {
   }, []);
 
   useEffect(() => {
-    // Cleanup previous observer
-    if (observerRef.current) {
-      observerRef.current.disconnect();
-      observerRef.current = null;
-    }
-
     const iframe = document.querySelector('iframe[data-preview-frame]') as HTMLIFrameElement;
     if (!iframe?.contentDocument) return;
 
     const doc = iframe.contentDocument;
 
     // Initial extraction - syncing with iframe DOM (external system)
-    // This is intentional: we're subscribing to external iframe DOM state
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    extractElements();
+    // Using setTimeout to defer state update until after render
+    const timeoutId = setTimeout(() => {
+      extractElements();
+    }, 0);
 
     // Set up MutationObserver for efficient DOM change detection
-    observerRef.current = new MutationObserver((mutations) => {
+    const observer = new MutationObserver((mutations) => {
       // Only re-extract if there are meaningful changes
       const hasMeaningfulChanges = mutations.some(mutation => 
         mutation.type === 'childList' || 
@@ -178,15 +182,19 @@ export function LayersPanel() {
       }
     });
 
-    observerRef.current.observe(doc.body, {
+    observer.observe(doc.body, {
       childList: true,
       subtree: true,
       attributes: true,
       attributeFilter: ['data-visual-id', 'class', 'id']
     });
 
+    observerRef.current = observer;
+
     return () => {
-      observerRef.current?.disconnect();
+      clearTimeout(timeoutId);
+      observer.disconnect();
+      observerRef.current = null;
     };
   }, [currentProject?.id, extractElements]);
 

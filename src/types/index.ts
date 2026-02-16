@@ -29,14 +29,19 @@ export interface ElementData {
   id: string;
   tagName: HTMLTagName | string;
   className?: string;
-  styles: Record<CSSProperty | string, string>;
+  styles: Record<string, string>;
   attributes: Record<string, string>;
   textContent?: string;
   children: ElementData[];
-  rect: DOMRect;
+  rect: Pick<DOMRect, 'x' | 'y' | 'width' | 'height' | 'top' | 'left' | 'right' | 'bottom'>;
   parentId?: string;
   index: number;
 }
+
+// Serializable version of ElementData for safe cloning
+export type SerializableElementData = Omit<ElementData, 'rect'> & {
+  rect: { x: number; y: number; width: number; height: number; top: number; left: number; right: number; bottom: number };
+};
 
 // Canvas state
 export interface CanvasState {

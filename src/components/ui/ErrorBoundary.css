@@ -1,0 +1,50 @@
+/* Error Boundary Styles */
+.error-boundary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+  background: var(--figma-bg, #2c2c2c);
+}
+
+.error-boundary-content {
+  text-align: center;
+  max-width: 400px;
+}
+
+.error-boundary-icon {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 16px;
+}
+
+.error-boundary h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--figma-text, #e6e6e6);
+  margin: 0 0 8px;
+}
+
+.error-boundary p {
+  font-size: 14px;
+  color: var(--figma-text-secondary, #b0b0b0);
+  margin: 0 0 24px;
+  line-height: 1.5;
+}
+
+.error-boundary-reset {
+  padding: 10px 20px;
+  background: var(--figma-accent, #0d99ff);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.error-boundary-reset:hover {
+  background: var(--figma-accent-hover, #0a7bc7);
+}

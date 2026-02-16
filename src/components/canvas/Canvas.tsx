@@ -187,7 +187,16 @@ export function Canvas() {
           attributes: {},
           textContent: el.children.length === 0 ? el.textContent || undefined : undefined,
           children: [],
-          rect,
+          rect: {
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height,
+            top: rect.top,
+            left: rect.left,
+            right: rect.right,
+            bottom: rect.bottom
+          },
           parentId: el.parentElement?.getAttribute('data-visual-id') || undefined,
           index: Array.from(el.parentElement?.children || []).indexOf(el)
         };
@@ -291,6 +300,39 @@ export function Canvas() {
       }
     }
   }, [selectedElementId]);
+
+  // Listen for style changes from store
+  useEffect(() => {
+    const handleStyleChange = (e: CustomEvent<{ elementId: string; property: string; value: string }>) => {
+      const { elementId, property, value } = e.detail;
+      const iframe = iframeRef.current;
+      if (!iframe?.contentDocument) return;
+      
+      const el = iframe.contentDocument.querySelector(`[data-visual-id="${elementId}"]`) as HTMLElement;
+      if (el) {
+        el.style.setProperty(property, value);
+      }
+    };
+
+    const handleTextChange = (e: CustomEvent<{ elementId: string; text: string }>) => {
+      const { elementId, text } = e.detail;
+      const iframe = iframeRef.current;
+      if (!iframe?.contentDocument) return;
+      
+      const el = iframe.contentDocument.querySelector(`[data-visual-id="${elementId}"]`) as HTMLElement;
+      if (el) {
+        el.textContent = text;
+      }
+    };
+
+    window.addEventListener('editor:style-change', handleStyleChange as EventListener);
+    window.addEventListener('editor:text-change', handleTextChange as EventListener);
+
+    return () => {
+      window.removeEventListener('editor:style-change', handleStyleChange as EventListener);
+      window.removeEventListener('editor:text-change', handleTextChange as EventListener);
+    };
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {

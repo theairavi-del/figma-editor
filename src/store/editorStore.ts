@@ -126,13 +126,12 @@ export const useEditorStore = create<EditorState>()(
 
           set({ selectedElementData: updatedData });
           
-          // Also update in iframe if possible
-          const iframe = document.querySelector('iframe[data-preview-frame]') as HTMLIFrameElement;
-          if (iframe?.contentDocument) {
-            const el = iframe.contentDocument.querySelector(`[data-visual-id="${elementId}"]`) as HTMLElement;
-            if (el) {
-              el.style.setProperty(property, value);
-            }
+          // Emit custom event for Canvas component to handle DOM update
+          // This maintains separation of concerns - store stays pure
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('editor:style-change', {
+              detail: { elementId, property, value }
+            }));
           }
         },
 
@@ -147,13 +146,11 @@ export const useEditorStore = create<EditorState>()(
             }
           });
 
-          // Update in iframe
-          const iframe = document.querySelector('iframe[data-preview-frame]') as HTMLIFrameElement;
-          if (iframe?.contentDocument) {
-            const el = iframe.contentDocument.querySelector(`[data-visual-id="${elementId}"]`) as HTMLElement;
-            if (el) {
-              el.textContent = text;
-            }
+          // Emit custom event for Canvas component to handle DOM update
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('editor:text-change', {
+              detail: { elementId, text }
+            }));
           }
         },
 
