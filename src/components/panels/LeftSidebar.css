@@ -1,0 +1,48 @@
+.left-sidebar {
+  display: flex;
+  flex-direction: column;
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  background: var(--figma-bg);
+  border-right: 1px solid var(--figma-border);
+}
+
+.sidebar-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--figma-border);
+}
+
+.sidebar-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: var(--panel-header-height);
+  padding: 0 12px;
+  border: none;
+  background: transparent;
+  color: var(--figma-text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sidebar-tab:hover {
+  color: var(--figma-text);
+  background: var(--figma-bg-secondary);
+}
+
+.sidebar-tab.active {
+  color: var(--figma-text);
+  background: var(--figma-bg-secondary);
+  box-shadow: inset 0 -2px 0 var(--figma-accent);
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow: hidden;
+}

@@ -1,0 +1,210 @@
+.properties-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.properties-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--figma-border);
+}
+
+.properties-element-name {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--figma-text);
+  margin-bottom: 4px;
+}
+
+.properties-element-id {
+  font-size: 11px;
+  color: var(--figma-text-muted);
+  font-family: 'Monaco', 'Menlo', monospace;
+}
+
+.properties-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--figma-text-secondary);
+  text-align: center;
+}
+
+.properties-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+/* Property Section */
+.prop-section {
+  border-bottom: 1px solid var(--figma-border);
+}
+
+.prop-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  color: var(--figma-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.prop-section-header:hover {
+  background: var(--figma-bg-hover);
+}
+
+.prop-section-chevron {
+  margin-left: auto;
+  transition: transform 0.2s ease;
+  opacity: 0.5;
+}
+
+.prop-section-chevron.expanded {
+  transform: rotate(180deg);
+}
+
+.prop-section-content {
+  padding: 0 16px 16px;
+}
+
+/* Property Inputs */
+.prop-input {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.prop-input label {
+  font-size: 11px;
+  color: var(--figma-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.prop-input-wrapper {
+  display: flex;
+  align-items: center;
+  background: var(--figma-bg-secondary);
+  border-radius: 4px;
+  border: 1px solid transparent;
+  transition: border-color 0.15s ease;
+}
+
+.prop-input-wrapper:focus-within {
+  border-color: var(--figma-accent);
+}
+
+.prop-input input,
+.prop-select {
+  flex: 1;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  color: var(--figma-text);
+  font-size: 12px;
+  outline: none;
+}
+
+.prop-input input::placeholder {
+  color: var(--figma-text-muted);
+}
+
+.prop-input-suffix {
+  padding-right: 10px;
+  font-size: 11px;
+  color: var(--figma-text-secondary);
+}
+
+.prop-select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23808080' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+
+/* Color Input */
+.prop-color-input {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 8px;
+  padding: 4px;
+}
+
+.prop-color-input input[type="color"] {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background: none;
+}
+
+.prop-color-input input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.prop-color-input input[type="color"]::-webkit-color-swatch {
+  border: 1px solid var(--figma-border);
+  border-radius: 4px;
+}
+
+.prop-color-input input[type="text"] {
+  flex: 1;
+}
+
+/* Grid Layouts */
+.prop-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.prop-grid-4 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.prop-divider {
+  height: 1px;
+  background: var(--figma-border);
+  margin: 12px 0;
+}
+
+/* Textarea */
+.prop-textarea textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--figma-border);
+  border-radius: 4px;
+  background: var(--figma-bg-secondary);
+  color: var(--figma-text);
+  font-size: 12px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 60px;
+  outline: none;
+}
+
+.prop-textarea textarea:focus {
+  border-color: var(--figma-accent);
+}
+
+.prop-textarea textarea::placeholder {
+  color: var(--figma-text-muted);
+}

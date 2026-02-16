@@ -1,0 +1,8 @@
+.right-sidebar {
+  display: flex;
+  flex-direction: column;
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  background: var(--figma-bg);
+  border-left: 1px solid var(--figma-border);
+}

@@ -1,0 +1,136 @@
+/* Figma-like Dark Theme Styles */
+
+:root {
+  /* Figma Colors */
+  --figma-bg: #2c2c2c;
+  --figma-bg-secondary: #383838;
+  --figma-bg-tertiary: #444444;
+  --figma-bg-hover: #4a4a4a;
+  --figma-bg-active: #0d99ff;
+  --figma-border: #444444;
+  --figma-border-light: #555555;
+  --figma-text: #e6e6e6;
+  --figma-text-secondary: #b0b0b0;
+  --figma-text-muted: #808080;
+  --figma-accent: #0d99ff;
+  --figma-accent-hover: #0a7bc7;
+  --figma-danger: #f24822;
+  --figma-success: #14ae5c;
+  --figma-warning: #f5a623;
+  
+  /* Canvas */
+  --canvas-bg: #1e1e1e;
+  --canvas-dot: #333333;
+  
+  /* Spacing */
+  --sidebar-width: 240px;
+  --toolbar-height: 48px;
+  --panel-header-height: 40px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  font-size: 13px;
+  color: var(--figma-text);
+  background: var(--figma-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: var(--figma-bg);
+}
+
+.main-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--figma-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--figma-border-light);
+}
+
+/* Selection */
+::selection {
+  background: var(--figma-accent);
+  color: white;
+}
+
+/* Utility Classes */
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.gap-2 {
+  gap: 8px;
+}
+
+.gap-4 {
+  gap: 16px;
+}
+
+.p-2 {
+  padding: 8px;
+}
+
+.p-4 {
+  padding: 16px;
+}
+
+.text-sm {
+  font-size: 12px;
+}
+
+.text-xs {
+  font-size: 11px;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

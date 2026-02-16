@@ -1,0 +1,178 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--toolbar-height);
+  background: var(--figma-bg);
+  border-bottom: 1px solid var(--figma-border);
+  padding: 0 12px;
+  user-select: none;
+}
+
+.toolbar-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolbar-left {
+  flex: 1;
+  min-width: 200px;
+}
+
+.toolbar-center {
+  flex: 0 0 auto;
+  justify-content: center;
+}
+
+.toolbar-right {
+  flex: 1;
+  min-width: 200px;
+  justify-content: flex-end;
+}
+
+.toolbar-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toolbar-project-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--figma-text);
+  margin-left: 8px;
+}
+
+/* Tools */
+.toolbar-tools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--figma-bg-secondary);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.toolbar-tool {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--figma-text-secondary);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.toolbar-tool:hover {
+  background: var(--figma-bg-hover);
+  color: var(--figma-text);
+}
+
+.toolbar-tool.active {
+  background: var(--figma-bg-tertiary);
+  color: var(--figma-text);
+}
+
+/* Actions */
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.toolbar-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--figma-text-secondary);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.toolbar-action:hover:not(:disabled) {
+  background: var(--figma-bg-hover);
+  color: var(--figma-text);
+}
+
+.toolbar-action:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Divider */
+.toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--figma-border);
+  margin: 0 8px;
+}
+
+/* Zoom */
+.toolbar-zoom {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--figma-bg-secondary);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.toolbar-zoom-value {
+  min-width: 56px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--figma-text);
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.toolbar-zoom-value:hover {
+  background: var(--figma-bg-hover);
+}
+
+/* Buttons */
+.toolbar-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.toolbar-button.primary {
+  background: var(--figma-accent);
+  color: white;
+}
+
+.toolbar-button.primary:hover {
+  background: var(--figma-accent-hover);
+}
+
+.toolbar-button.secondary {
+  background: var(--figma-bg-secondary);
+  color: var(--figma-text);
+}
+
+.toolbar-button.secondary:hover {
+  background: var(--figma-bg-hover);
+}

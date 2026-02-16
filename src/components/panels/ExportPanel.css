@@ -1,0 +1,162 @@
+.export-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.export-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--figma-border);
+}
+
+.export-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--figma-text);
+}
+
+.export-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.export-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--figma-text-secondary);
+  text-align: center;
+}
+
+.export-empty-icon {
+  margin-bottom: 16px;
+  opacity: 0.3;
+}
+
+.export-empty-hint {
+  font-size: 11px;
+  color: var(--figma-text-muted);
+}
+
+/* Export Info */
+.export-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.export-info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--figma-bg-secondary);
+  border-radius: 6px;
+}
+
+.export-info-label {
+  font-size: 11px;
+  color: var(--figma-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.export-info-value {
+  font-size: 12px;
+  color: var(--figma-text);
+  font-weight: 500;
+}
+
+/* Export Stats */
+.export-stats {
+  margin-bottom: 24px;
+}
+
+.export-stats h4 {
+  font-size: 11px;
+  color: var(--figma-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.export-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.export-stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--figma-bg-secondary);
+  border-radius: 6px;
+}
+
+.export-stat-item svg {
+  color: var(--figma-accent);
+}
+
+.export-stat-type {
+  font-size: 11px;
+  color: var(--figma-text-secondary);
+  flex: 1;
+}
+
+.export-stat-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--figma-text);
+}
+
+/* Export Button */
+.export-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 40px;
+  border: none;
+  border-radius: 6px;
+  background: var(--figma-accent);
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.export-button:hover:not(:disabled) {
+  background: var(--figma-accent-hover);
+}
+
+.export-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.export-button.success {
+  background: var(--figma-success);
+}
+
+.export-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

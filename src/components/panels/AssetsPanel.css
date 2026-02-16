@@ -1,0 +1,99 @@
+.assets-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.assets-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border-bottom: 1px solid var(--figma-border);
+}
+
+.assets-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--figma-text);
+}
+
+.assets-count {
+  font-size: 11px;
+  color: var(--figma-text-muted);
+}
+
+.assets-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.assets-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: var(--figma-text-secondary);
+  text-align: center;
+}
+
+.assets-empty p {
+  margin: 4px 0;
+}
+
+.assets-empty-hint {
+  font-size: 11px;
+  color: var(--figma-text-muted);
+}
+
+/* Asset Groups */
+.assets-group {
+  margin-bottom: 16px;
+}
+
+.assets-group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--figma-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.assets-group-count {
+  color: var(--figma-text-muted);
+  font-size: 11px;
+}
+
+.assets-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Asset Item */
+.asset-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.asset-item:hover {
+  background: var(--figma-bg-hover);
+}
+
+.asset-name {
+  font-size: 12px;
+  color: var(--figma-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

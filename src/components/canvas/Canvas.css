@@ -1,0 +1,70 @@
+.canvas {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: var(--canvas-bg);
+  cursor: default;
+}
+
+.canvas.panning {
+  cursor: grab;
+}
+
+.canvas.is-panning {
+  cursor: grabbing;
+}
+
+/* Grid Background */
+.canvas-grid {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(circle, var(--canvas-dot) 1px, transparent 1px);
+  pointer-events: none;
+}
+
+/* Canvas Content */
+.canvas-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  will-change: transform;
+}
+
+/* Iframe */
+.canvas-iframe {
+  width: 1200px;
+  height: 800px;
+  border: none;
+  background: white;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  transform: translate(-50%, -50%);
+}
+
+/* Empty State */
+.canvas-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 600px;
+  height: 400px;
+  background: var(--figma-bg-secondary);
+  border-radius: 8px;
+  color: var(--figma-text-secondary);
+  transform: translate(-50%, -50%);
+}
+
+/* Zoom Indicator */
+.canvas-zoom-indicator {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  padding: 6px 12px;
+  background: var(--figma-bg-secondary);
+  border: 1px solid var(--figma-border);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--figma-text);
+  pointer-events: none;
+}

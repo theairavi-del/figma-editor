@@ -1,0 +1,152 @@
+.file-upload-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 40px;
+  background: var(--figma-bg);
+}
+
+.file-upload-branding {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.file-upload-branding svg {
+  margin-bottom: 24px;
+}
+
+.file-upload-branding h1 {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--figma-text);
+  margin-bottom: 8px;
+}
+
+.file-upload-branding p {
+  font-size: 16px;
+  color: var(--figma-text-secondary);
+}
+
+/* Upload Zone */
+.file-upload-zone {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  height: 240px;
+  border: 2px dashed var(--figma-border);
+  border-radius: 12px;
+  background: var(--figma-bg-secondary);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.file-upload-zone:hover {
+  border-color: var(--figma-accent);
+  background: var(--figma-bg-hover);
+}
+
+.file-upload-zone.dragging {
+  border-color: var(--figma-accent);
+  background: rgba(13, 153, 255, 0.1);
+}
+
+.file-upload-zone.error {
+  border-color: var(--figma-danger);
+  background: rgba(242, 72, 34, 0.05);
+}
+
+.file-upload-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.file-upload-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  cursor: pointer;
+}
+
+.file-upload-icon {
+  color: var(--figma-accent);
+  opacity: 0.8;
+}
+
+.file-upload-icon.error {
+  color: var(--figma-danger);
+}
+
+.file-upload-text {
+  font-size: 14px;
+  color: var(--figma-text-secondary);
+}
+
+.file-upload-link {
+  color: var(--figma-accent);
+  font-weight: 500;
+}
+
+.file-upload-spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--figma-border);
+  border-top-color: var(--figma-accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Info Section */
+.file-upload-info {
+  display: flex;
+  gap: 48px;
+  margin-top: 48px;
+}
+
+.file-upload-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  color: var(--figma-text-secondary);
+}
+
+.file-upload-feature .feature-icon {
+  font-size: 1.5rem;
+  margin-top: 2px;
+}
+
+.file-upload-feature h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--figma-text);
+  margin-bottom: 4px;
+}
+
+.file-upload-feature p {
+  font-size: 12px;
+}
+
+/* Formats */
+.file-upload-formats {
+  margin-top: 32px;
+  padding: 12px 24px;
+  background: var(--figma-bg-secondary);
+  border-radius: 6px;
+}
+
+.file-upload-formats p {
+  font-size: 12px;
+  color: var(--figma-text-muted);
+}
