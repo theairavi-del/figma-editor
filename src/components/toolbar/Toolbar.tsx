@@ -70,20 +70,26 @@ export function Toolbar() {
 
         <div className="toolbar-actions">
           <button
-            className="toolbar-action"
+            className={`toolbar-action history-btn ${!canUndo() ? 'disabled' : ''}`}
             onClick={undo}
             disabled={!canUndo()}
             title="Undo (Ctrl+Z)"
           >
-            <span>↶</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 7v6h6" />
+              <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+            </svg>
           </button>
           <button
-            className="toolbar-action"
+            className={`toolbar-action history-btn ${!canRedo() ? 'disabled' : ''}`}
             onClick={redo}
             disabled={!canRedo()}
             title="Redo (Ctrl+Shift+Z)"
           >
-            <span>↷</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 7v6h-6" />
+              <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13" />
+            </svg>
           </button>
         </div>
 

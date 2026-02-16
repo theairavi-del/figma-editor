@@ -34,7 +34,7 @@ export function Canvas() {
     selectedElementId,
     selectElement,
     setElementData,
-    saveToHistory
+    debouncedSaveToHistory
   } = useEditorStore();
 
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -220,9 +220,9 @@ export function Canvas() {
         setCanvas({ isPanning: false });
       }
       
-      // Save history after nudging
+      // Debounced save history after nudging
       if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key) && selectedElementId) {
-        saveToHistory();
+        debouncedSaveToHistory('Nudge element', 500);
       }
     };
 
@@ -232,7 +232,7 @@ export function Canvas() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [selectedElementId, spacePressed, setCanvas, saveToHistory, getElementBounds]);
+  }, [selectedElementId, spacePressed, setCanvas, debouncedSaveToHistory, getElementBounds]);
 
   // Cleanup function to remove all event listeners
   const cleanupHandlers = useCallback(() => {
@@ -394,7 +394,7 @@ export function Canvas() {
         const state = dragStateRef.current;
         if (state.isDragging) {
           dragStateRef.current = { ...state, isDragging: false, elementId: null };
-          saveToHistory();
+          debouncedSaveToHistory('Move element', 500);
         }
       };
 
@@ -427,7 +427,7 @@ export function Canvas() {
         selected.classList.add('visual-editor-selected');
       }
     }
-  }, [selectElement, setElementData, saveToHistory, cleanupHandlers, canvas.translateX, canvas.translateY, getElementBounds]);
+  }, [selectElement, setElementData, debouncedSaveToHistory, cleanupHandlers, canvas.translateX, canvas.translateY, getElementBounds]);
 
   // Re-attach handlers when content changes
   useEffect(() => {

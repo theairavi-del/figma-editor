@@ -90,8 +90,14 @@ export interface EditorState {
   activeTool: EditorTool;
   
   // History for undo/redo
-  history: Project[];
+  history: HistoryEntry[];
   historyIndex: number;
+  isHistoryEnabled: boolean;
+  lastHistorySave: number;
+  
+  // Batch operations
+  activeBatch: string | null;
+  batchCommands: Command[];
   
   // Actions
   setProject: (project: Project) => void;
@@ -108,14 +114,28 @@ export interface EditorState {
   resetZoom: () => void;
   setActiveTool: (tool: EditorTool) => void;
   setActiveLeftPanel: (panel: LeftPanelTab) => void;
+  
+  // History Actions
+  saveToHistory: (label?: string) => void;
+  debouncedSaveToHistory: (label?: string, delay?: number) => void;
+  flushHistory: () => void;
   undo: () => void;
   redo: () => void;
   canUndo: () => boolean;
   canRedo: () => boolean;
+  getHistoryLabel: () => string | null;
+  setHistoryEnabled: (enabled: boolean) => void;
+  clearHistory: () => void;
+  
+  // Batch Actions
+  startBatch: (label: string) => void;
+  endBatch: () => void;
+  cancelBatch: () => void;
+  
+  // Utility Actions
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   clearError: () => void;
-  saveToHistory: () => void;
 }
 
 // File upload
@@ -145,4 +165,35 @@ export interface ElementModification {
   target: string;
   property?: string;
   value: string | number;
+}
+
+// ============================================
+// HISTORY TYPES
+// ============================================
+
+// History entry for undo/redo
+export interface HistoryEntry {
+  project: Project;
+  selectedElementId: string | null;
+  timestamp: number;
+  label: string;
+}
+
+// Command pattern for atomic operations
+export interface Command {
+  id: string;
+  type: 'style' | 'text' | 'attribute' | 'position' | 'composite';
+  elementId: string;
+  property?: string;
+  oldValue: unknown;
+  newValue: unknown;
+  timestamp: number;
+}
+
+// Batch operation tracking
+export interface BatchOperation {
+  id: string;
+  label: string;
+  commands: Command[];
+  timestamp: number;
 }

@@ -1,5 +1,6 @@
-import { useEffect, useCallback } from 'react';
+// App component
 import { useEditorStore } from './store/editorStore';
+import { useKeyboardShortcuts, getAllShortcuts } from './hooks/useKeyboardShortcuts';
 import { Toolbar } from './components/toolbar/Toolbar';
 import { LeftSidebar } from './components/panels/LeftSidebar';
 import { RightSidebar } from './components/panels/RightSidebar';
@@ -7,6 +8,7 @@ import { Canvas } from './components/canvas/Canvas';
 import { FileUpload } from './components/ui/FileUpload';
 import { ErrorToast } from './components/ui/ErrorToast';
 import { LoadingOverlay } from './components/ui/LoadingOverlay';
+import { ShortcutFeedback } from './components/ui/ShortcutFeedback';
 import './styles/App.css';
 
 function App() {
@@ -14,38 +16,11 @@ function App() {
     currentProject, 
     isLoading, 
     error, 
-    undo, 
-    redo, 
-    canUndo, 
-    canRedo,
     clearError 
   } = useEditorStore();
 
-  // Keyboard shortcuts
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    // Ctrl/Cmd + Z for undo
-    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-      e.preventDefault();
-      if (canUndo()) undo();
-    }
-    
-    // Ctrl/Cmd + Shift + Z or Ctrl/Cmd + Y for redo
-    if (((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z') ||
-        ((e.ctrlKey || e.metaKey) && e.key === 'y')) {
-      e.preventDefault();
-      if (canRedo()) redo();
-    }
-
-    // Escape to deselect
-    if (e.key === 'Escape') {
-      useEditorStore.getState().selectElement(null);
-    }
-  }, [undo, redo, canUndo, canRedo]);
-
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
+  // Use enhanced keyboard shortcuts
+  const { feedback } = useKeyboardShortcuts();
 
   if (!currentProject) {
     return (
@@ -66,8 +41,10 @@ function App() {
       </div>
       {isLoading && <LoadingOverlay />}
       {error && <ErrorToast message={error} onClose={clearError} />}
+      {feedback && <ShortcutFeedback action={feedback.action} />}
     </div>
   );
 }
 
 export default App;
+export { getAllShortcuts };

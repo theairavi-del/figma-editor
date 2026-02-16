@@ -109,6 +109,34 @@
   cursor: not-allowed;
 }
 
+/* History buttons with enhanced styling */
+.toolbar-action.history-btn {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.toolbar-action.history-btn:not(:disabled):hover {
+  background: var(--figma-bg-hover);
+  color: var(--figma-accent);
+  transform: scale(1.05);
+}
+
+.toolbar-action.history-btn:not(:disabled):active {
+  transform: scale(0.95);
+}
+
+.toolbar-action.history-btn svg {
+  transition: transform 0.2s ease;
+}
+
+.toolbar-action.history-btn:not(:disabled):hover svg {
+  transform: rotate(-15deg);
+}
+
+.toolbar-action.history-btn.disabled {
+  opacity: 0.2;
+}
+
 /* Divider */
 .toolbar-divider {
   width: 1px;
