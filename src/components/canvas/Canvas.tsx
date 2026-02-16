@@ -13,6 +13,9 @@ interface DragState {
   startY: number;
   elementStartX: number;
   elementStartY: number;
+  hasMoved: boolean;
+  dragOffsetX: number;
+  dragOffsetY: number;
 }
 
 // Element bounds for selection overlay
@@ -23,6 +26,12 @@ interface ElementBounds {
   height: number;
   scrollX: number;
   scrollY: number;
+}
+
+// Snap line for visual feedback
+interface SnapLine {
+  orientation: 'horizontal' | 'vertical';
+  position: number;
 }
 
 export function Canvas() {
@@ -42,6 +51,9 @@ export function Canvas() {
   const [selectedBounds, setSelectedBounds] = useState<ElementBounds | null>(null);
   const [hoveredBounds, setHoveredBounds] = useState<ElementBounds | null>(null);
   const [spacePressed, setSpacePressed] = useState(false);
+  const [snapLines, setSnapLines] = useState<SnapLine[]>([]);
+  const [isSnapping, setIsSnapping] = useState(false);
+  const [snapEnabled, setSnapEnabled] = useState(true);
   
   // Use refs for drag state to avoid stale closure issues
   const dragStateRef = useRef<DragState>({
@@ -50,7 +62,10 @@ export function Canvas() {
     startX: 0,
     startY: 0,
     elementStartX: 0,
-    elementStartY: 0
+    elementStartY: 0,
+    hasMoved: false,
+    dragOffsetX: 0,
+    dragOffsetY: 0
   });
   
   // Store handlers in refs for cleanup
@@ -84,10 +99,142 @@ export function Canvas() {
       y: rect.top - iframeRect.top + canvas.translateY,
       width: rect.width,
       height: rect.height,
-      scrollX: iframe.contentDocument.documentElement.scrollLeft,
-      scrollY: iframe.contentDocument.documentElement.scrollTop
+      scrollX: 0,
+      scrollY: 0
     };
   }, [canvas.translateX, canvas.translateY]);
+
+  // Calculate snap lines based on other elements
+  const calculateSnapLines = useCallback((currentElId: string, x: number, y: number, width: number, height: number): SnapLine[] => {
+    if (!snapEnabled) return [];
+    
+    const iframe = iframeRef.current;
+    if (!iframe?.contentDocument) return [];
+
+    const doc = iframe.contentDocument;
+    const snapThreshold = 8 / canvas.scale; // Snap threshold in canvas coordinates
+    const lines: SnapLine[] = [];
+    
+    // Current element edges
+    const currentEdges = {
+      left: x,
+      right: x + width,
+      top: y,
+      bottom: y + height,
+      centerX: x + width / 2,
+      centerY: y + height / 2
+    };
+
+    // Check all other positioned elements
+    doc.querySelectorAll('[data-visual-id]').forEach((el) => {
+      const id = el.getAttribute('data-visual-id');
+      if (id === currentElId) return;
+
+      const htmlEl = el as HTMLElement;
+      const computedStyle = iframe.contentWindow?.getComputedStyle(htmlEl);
+      if (!computedStyle || computedStyle.position === 'static') return;
+
+      const elLeft = parseInt(computedStyle.left) || 0;
+      const elTop = parseInt(computedStyle.top) || 0;
+      const elWidth = htmlEl.offsetWidth;
+      const elHeight = htmlEl.offsetHeight;
+
+      const otherEdges = {
+        left: elLeft,
+        right: elLeft + elWidth,
+        top: elTop,
+        bottom: elTop + elHeight,
+        centerX: elLeft + elWidth / 2,
+        centerY: elTop + elHeight / 2
+      };
+
+      // Check for snap alignment
+      const checks = [
+        { current: currentEdges.left, target: otherEdges.left, orientation: 'vertical' as const },
+        { current: currentEdges.left, target: otherEdges.centerX, orientation: 'vertical' as const },
+        { current: currentEdges.left, target: otherEdges.right, orientation: 'vertical' as const },
+        { current: currentEdges.centerX, target: otherEdges.left, orientation: 'vertical' as const },
+        { current: currentEdges.centerX, target: otherEdges.centerX, orientation: 'vertical' as const },
+        { current: currentEdges.centerX, target: otherEdges.right, orientation: 'vertical' as const },
+        { current: currentEdges.right, target: otherEdges.left, orientation: 'vertical' as const },
+        { current: currentEdges.right, target: otherEdges.centerX, orientation: 'vertical' as const },
+        { current: currentEdges.right, target: otherEdges.right, orientation: 'vertical' as const },
+        { current: currentEdges.top, target: otherEdges.top, orientation: 'horizontal' as const },
+        { current: currentEdges.top, target: otherEdges.centerY, orientation: 'horizontal' as const },
+        { current: currentEdges.top, target: otherEdges.bottom, orientation: 'horizontal' as const },
+        { current: currentEdges.centerY, target: otherEdges.top, orientation: 'horizontal' as const },
+        { current: currentEdges.centerY, target: otherEdges.centerY, orientation: 'horizontal' as const },
+        { current: currentEdges.centerY, target: otherEdges.bottom, orientation: 'horizontal' as const },
+        { current: currentEdges.bottom, target: otherEdges.top, orientation: 'horizontal' as const },
+        { current: currentEdges.bottom, target: otherEdges.centerY, orientation: 'horizontal' as const },
+        { current: currentEdges.bottom, target: otherEdges.bottom, orientation: 'horizontal' as const },
+      ];
+
+      for (const check of checks) {
+        if (Math.abs(check.current - check.target) < snapThreshold) {
+          const position = check.orientation === 'vertical' ? check.target : check.target;
+          // Only add if not already present
+          if (!lines.some(l => l.orientation === check.orientation && Math.abs(l.position - position) < 1)) {
+            lines.push({ orientation: check.orientation, position });
+          }
+        }
+      }
+    });
+
+    return lines;
+  }, [canvas.scale, snapEnabled]);
+
+  // Apply snapping to position
+  const applySnapping = useCallback((x: number, y: number, width: number, height: number, elementId: string): { x: number; y: number; snapped: boolean } => {
+    if (!snapEnabled) return { x, y, snapped: false };
+
+    const lines = calculateSnapLines(elementId, x, y, width, height);
+    setSnapLines(lines);
+    
+    let newX = x;
+    let newY = y;
+    let snapped = false;
+    const snapThreshold = 8 / canvas.scale;
+
+    for (const line of lines) {
+      if (line.orientation === 'vertical') {
+        // Check if left, center, or right edge aligns
+        const leftDist = Math.abs(x - line.position);
+        const centerDist = Math.abs((x + width / 2) - line.position);
+        const rightDist = Math.abs((x + width) - line.position);
+
+        if (leftDist < snapThreshold) {
+          newX = line.position;
+          snapped = true;
+        } else if (centerDist < snapThreshold) {
+          newX = line.position - width / 2;
+          snapped = true;
+        } else if (rightDist < snapThreshold) {
+          newX = line.position - width;
+          snapped = true;
+        }
+      } else {
+        // Check if top, center, or bottom edge aligns
+        const topDist = Math.abs(y - line.position);
+        const centerDist = Math.abs((y + height / 2) - line.position);
+        const bottomDist = Math.abs((y + height) - line.position);
+
+        if (topDist < snapThreshold) {
+          newY = line.position;
+          snapped = true;
+        } else if (centerDist < snapThreshold) {
+          newY = line.position - height / 2;
+          snapped = true;
+        } else if (bottomDist < snapThreshold) {
+          newY = line.position - height;
+          snapped = true;
+        }
+      }
+    }
+
+    setIsSnapping(snapped);
+    return { x: newX, y: newY, snapped };
+  }, [calculateSnapLines, canvas.scale, snapEnabled]);
 
   // Update selection bounds when selection changes
   useEffect(() => {
@@ -166,6 +313,12 @@ export function Canvas() {
         setSpacePressed(true);
       }
       
+      // Toggle snap with Cmd/Ctrl + '
+      if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
+        e.preventDefault();
+        setSnapEnabled(prev => !prev);
+      }
+      
       // Arrow keys for nudging selected element
       if (selectedElementId && !e.ctrlKey && !e.metaKey && !e.altKey) {
         const step = e.shiftKey ? 10 : 1;
@@ -206,7 +359,6 @@ export function Canvas() {
                 // Update bounds
                 const bounds = getElementBounds(selectedElementId);
                 setSelectedBounds(bounds);
-                // Save to history on key up
               }
             }
           }
@@ -269,8 +421,10 @@ export function Canvas() {
         const visualId = el.getAttribute('data-visual-id');
         const currentTool = useEditorStore.getState().activeTool;
         const currentSelected = useEditorStore.getState().selectedElementId;
+        const currentDragState = dragStateRef.current;
         
-        if (visualId && currentTool === 'select' && visualId !== currentSelected) {
+        // Don't show hover if dragging
+        if (visualId && currentTool === 'select' && visualId !== currentSelected && !currentDragState.isDragging) {
           el.classList.add('visual-editor-hover');
           // Update hover bounds for overlay
           const iframeRect = iframe.getBoundingClientRect();
@@ -288,7 +442,10 @@ export function Canvas() {
 
       const mouseleaveHandler = () => {
         el.classList.remove('visual-editor-hover');
-        setHoveredBounds(null);
+        const currentDragState = dragStateRef.current;
+        if (!currentDragState.isDragging) {
+          setHoveredBounds(null);
+        }
       };
 
       const mousedownHandler = (e: Event) => {
@@ -356,14 +513,27 @@ export function Canvas() {
 
         // Start drag if element has position
         if (computedStyle.position === 'absolute' || computedStyle.position === 'fixed') {
+          const elRect = el.getBoundingClientRect();
+          
           dragStateRef.current = {
             isDragging: true,
             elementId: visualId,
             startX: mouseEvent.clientX,
             startY: mouseEvent.clientY,
             elementStartX: parseInt(computedStyle.left) || 0,
-            elementStartY: parseInt(computedStyle.top) || 0
+            elementStartY: parseInt(computedStyle.top) || 0,
+            hasMoved: false,
+            dragOffsetX: mouseEvent.clientX - elRect.left,
+            dragOffsetY: mouseEvent.clientY - elRect.top
           };
+          
+          // Add dragging class for cursor
+          el.classList.add('visual-editor-dragging');
+          
+          // Update cursor
+          if (canvasRef.current) {
+            canvasRef.current.style.cursor = 'grabbing';
+          }
         }
       };
 
@@ -372,29 +542,76 @@ export function Canvas() {
         const state = dragStateRef.current;
         const currentScale = useEditorStore.getState().canvas.scale;
         
-        if (!state.isDragging) return;
+        if (!state.isDragging || !state.elementId) return;
         
+        // Calculate delta from start
         const deltaX = (mouseEvent.clientX - state.startX) / currentScale;
         const deltaY = (mouseEvent.clientY - state.startY) / currentScale;
         
-        const newLeft = state.elementStartX + deltaX;
-        const newTop = state.elementStartY + deltaY;
+        // Check if we've moved enough to count as a drag
+        if (!state.hasMoved) {
+          const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+          if (distance < 3) return; // 3px threshold
+          state.hasMoved = true;
+        }
+        
+        let newLeft = state.elementStartX + deltaX;
+        let newTop = state.elementStartY + deltaY;
+        
+        // Apply snapping
+        const el = doc.querySelector(`[data-visual-id="${state.elementId}"]`) as HTMLElement;
+        if (el && snapEnabled) {
+          const width = el.offsetWidth;
+          const height = el.offsetHeight;
+          const snapped = applySnapping(newLeft, newTop, width, height, state.elementId);
+          newLeft = snapped.x;
+          newTop = snapped.y;
+        }
         
         el.style.left = `${newLeft}px`;
         el.style.top = `${newTop}px`;
         
         // Update selection bounds during drag
-        if (state.elementId) {
-          const bounds = getElementBounds(state.elementId);
-          setSelectedBounds(bounds);
-        }
+        const bounds = getElementBounds(state.elementId);
+        setSelectedBounds(bounds);
       };
 
       const mouseupHandler = () => {
         const state = dragStateRef.current;
         if (state.isDragging) {
-          dragStateRef.current = { ...state, isDragging: false, elementId: null };
-          debouncedSaveToHistory('Move element', 500);
+          // Remove dragging class
+          if (state.elementId) {
+            const el = doc.querySelector(`[data-visual-id="${state.elementId}"]`) as HTMLElement;
+            if (el) {
+              el.classList.remove('visual-editor-dragging');
+            }
+          }
+          
+          // Reset cursor
+          if (canvasRef.current) {
+            canvasRef.current.style.cursor = '';
+          }
+          
+          dragStateRef.current = { 
+            isDragging: false, 
+            elementId: null,
+            startX: 0,
+            startY: 0,
+            elementStartX: 0,
+            elementStartY: 0,
+            hasMoved: false,
+            dragOffsetX: 0,
+            dragOffsetY: 0
+          };
+          
+          // Clear snap lines
+          setSnapLines([]);
+          setIsSnapping(false);
+          
+          // Only save to history if we actually moved
+          if (state.hasMoved) {
+            debouncedSaveToHistory('Move element', 500);
+          }
         }
       };
 
@@ -402,7 +619,7 @@ export function Canvas() {
       handlersRef.current.set(el, {
         mouseenter: mouseenterHandler,
         mouseleave: mouseleaveHandler,
-        mousedown: mousedownHandler,
+        mousedown: mouseenterHandler,
         mousemove: mousemoveHandler,
         mouseup: mouseupHandler
       });
@@ -427,7 +644,7 @@ export function Canvas() {
         selected.classList.add('visual-editor-selected');
       }
     }
-  }, [selectElement, setElementData, debouncedSaveToHistory, cleanupHandlers, canvas.translateX, canvas.translateY, getElementBounds]);
+  }, [selectElement, setElementData, debouncedSaveToHistory, cleanupHandlers, canvas.translateX, canvas.translateY, getElementBounds, applySnapping, snapEnabled]);
 
   // Re-attach handlers when content changes
   useEffect(() => {
@@ -513,7 +730,7 @@ export function Canvas() {
   return (
     <div 
       ref={canvasRef}
-      className={`canvas ${activeTool === 'pan' || spacePressed ? 'panning' : ''} ${canvas.isPanning ? 'is-panning' : ''}`}
+      className={`canvas ${activeTool === 'pan' || spacePressed ? 'panning' : ''} ${canvas.isPanning ? 'is-panning' : ''} ${isSnapping ? 'is-snapping' : ''}`}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -528,6 +745,20 @@ export function Canvas() {
           backgroundPosition: `${canvas.translateX}px ${canvas.translateY}px`
         }}
       />
+
+      {/* Snap Lines */}
+      {snapLines.map((line, index) => (
+        <div
+          key={index}
+          className={`snap-line ${line.orientation}`}
+          style={{
+            [line.orientation === 'vertical' ? 'left' : 'top']: `${line.position * canvas.scale + canvas.translateX}px`,
+            [line.orientation === 'vertical' ? 'top' : 'left']: 0,
+            [line.orientation === 'vertical' ? 'height' : 'width']: '100%',
+            [line.orientation === 'vertical' ? 'width' : 'height']: '1px',
+          }}
+        />
+      ))}
 
       {/* Canvas Content */}
       <div 
@@ -582,6 +813,15 @@ export function Canvas() {
         {Math.round(canvas.scale * 100)}%
       </div>
       
+      {/* Snap Indicator */}
+      <div 
+        className={`canvas-snap-indicator ${snapEnabled ? 'active' : ''}`}
+        onClick={() => setSnapEnabled(!snapEnabled)}
+        title={`Snap to elements (${snapEnabled ? 'on' : 'off'}) - Cmd+\\ to toggle`}
+      >
+        {snapEnabled ? '🧲' : '○'}
+      </div>
+      
       {/* Canvas Hint */}
       {currentProject && (
         <div className="canvas-hint">
@@ -589,7 +829,7 @@ export function Canvas() {
           <span>•</span>
           <span>Ctrl + scroll to zoom</span>
           <span>•</span>
-          <span>Arrow keys to nudge</span>
+          <span>Cmd+\ snap</span>
         </div>
       )}
     </div>

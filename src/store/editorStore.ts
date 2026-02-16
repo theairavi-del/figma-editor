@@ -449,7 +449,18 @@ export const useEditorStore = create<EditorState>()(
             translateX: state.canvas.translateX,
             translateY: state.canvas.translateY,
           }
-        })
+        }),
+        onRehydrateStorage: () => {
+          return () => {
+            // Listen for history save events from layer reordering
+            if (typeof window !== 'undefined') {
+              window.addEventListener('editor:save-history', ((e: CustomEvent<{ label?: string }>) => {
+                const store = useEditorStore.getState();
+                store.saveToHistory(e.detail?.label || 'Edit');
+              }) as EventListener);
+            }
+          };
+        }
       }
     )
   )

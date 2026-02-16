@@ -4,6 +4,10 @@
   height: 100%;
 }
 
+.layers-panel.is-dragging .layer-item {
+  transition: opacity 0.15s ease;
+}
+
 .layers-header {
   display: flex;
   align-items: center;
@@ -62,7 +66,8 @@
   padding-right: 8px;
   cursor: pointer;
   user-select: none;
-  transition: background 0.1s ease;
+  transition: background 0.1s ease, opacity 0.15s ease;
+  position: relative;
 }
 
 .layer-item:hover {
@@ -75,8 +80,52 @@
 }
 
 .layer-item.selected .layer-icon,
-.layer-item.selected .layer-name {
+.layer-item.selected .layer-name,
+.layer-item.selected .layer-drag-handle {
   color: white;
+}
+
+/* Drag states */
+.layer-item.dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+.layer-item.drop-target-before {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.layer-item.drop-target-after {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.layer-item.drop-target-inside {
+  background: rgba(59, 130, 246, 0.2);
+  box-shadow: inset 0 0 0 2px var(--figma-accent);
+}
+
+/* Drop indicators */
+.drop-indicator {
+  height: 2px;
+  background: var(--figma-accent);
+  margin: -1px 8px 0;
+  position: relative;
+  z-index: 10;
+  box-shadow: 0 0 4px var(--figma-accent);
+  animation: dropIndicatorPulse 0.3s ease-out;
+}
+
+.drop-indicator.before {
+  margin-bottom: 0;
+}
+
+.drop-indicator.after {
+  margin-top: 0;
+}
+
+@keyframes dropIndicatorPulse {
+  0% { opacity: 0; transform: scaleX(0); }
+  100% { opacity: 1; transform: scaleX(1); }
 }
 
 .layer-expand-btn {
@@ -91,6 +140,7 @@
   cursor: pointer;
   opacity: 0.7;
   transition: opacity 0.1s;
+  font-size: 10px;
 }
 
 .layer-expand-btn:hover {
@@ -107,6 +157,8 @@
   justify-content: center;
   color: var(--figma-text-secondary);
   opacity: 0.7;
+  font-size: 12px;
+  width: 16px;
 }
 
 .layer-name {
@@ -115,9 +167,51 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
+}
+
+.layer-drag-handle {
+  opacity: 0;
+  color: var(--figma-text-muted);
+  font-size: 10px;
+  letter-spacing: -1px;
+  cursor: grab;
+  padding: 0 4px;
+  transition: opacity 0.15s ease;
+}
+
+.layer-item:hover .layer-drag-handle {
+  opacity: 0.5;
+}
+
+.layer-item:hover .layer-drag-handle:hover {
+  opacity: 1;
+}
+
+.layer-item.dragging .layer-drag-handle {
+  cursor: grabbing;
+  opacity: 1;
 }
 
 .layer-children {
   display: flex;
   flex-direction: column;
+}
+
+/* Scrollbar styling */
+.layers-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.layers-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.layers-list::-webkit-scrollbar-thumb {
+  background: var(--figma-border);
+  border-radius: 3px;
+}
+
+.layers-list::-webkit-scrollbar-thumb:hover {
+  background: var(--figma-text-muted);
 }

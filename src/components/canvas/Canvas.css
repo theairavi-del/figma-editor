@@ -15,6 +15,10 @@
   cursor: grabbing;
 }
 
+.canvas.is-snapping .canvas-grid {
+  opacity: 0.6;
+}
+
 /* Grid Background - improved scaling */
 .canvas-grid {
   position: absolute;
@@ -22,7 +26,32 @@
   background-image: 
     radial-gradient(circle, var(--canvas-dot) 1px, transparent 1px);
   pointer-events: none;
-  transition: background-size 0.1s ease-out;
+  transition: background-size 0.1s ease-out, opacity 0.2s ease;
+}
+
+/* Snap Lines */
+.snap-line {
+  position: absolute;
+  pointer-events: none;
+  z-index: 100;
+  background: var(--figma-accent);
+  box-shadow: 0 0 4px var(--figma-accent);
+  animation: snapLinePulse 0.3s ease-out;
+}
+
+@keyframes snapLinePulse {
+  0% { opacity: 0; transform: scale(0.5); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.snap-line.vertical {
+  width: 1px;
+  height: 100%;
+}
+
+.snap-line.horizontal {
+  height: 1px;
+  width: 100%;
 }
 
 /* Canvas Content */
@@ -93,6 +122,32 @@
   background: var(--figma-bg-hover);
 }
 
+/* Snap Indicator */
+.canvas-snap-indicator {
+  position: absolute;
+  bottom: 16px;
+  right: 80px;
+  padding: 6px 10px;
+  background: var(--figma-bg-secondary);
+  border: 1px solid var(--figma-border);
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  opacity: 0.5;
+}
+
+.canvas-snap-indicator:hover {
+  background: var(--figma-bg-hover);
+  opacity: 0.8;
+}
+
+.canvas-snap-indicator.active {
+  opacity: 1;
+  background: var(--figma-accent-alpha, rgba(59, 130, 246, 0.2));
+  border-color: var(--figma-accent);
+}
+
 /* Canvas Hint */
 .canvas-hint {
   position: absolute;
@@ -121,6 +176,13 @@
   outline: none !important;
 }
 
+.visual-editor-dragging {
+  cursor: grabbing !important;
+  user-select: none !important;
+  opacity: 0.8;
+  transition: opacity 0.15s ease;
+}
+
 /* Spacebar hint animation */
 @keyframes fadeHint {
   0%, 100% { opacity: 0.8; }
@@ -129,4 +191,16 @@
 
 .canvas-hint {
   animation: fadeHint 3s ease-in-out infinite;
+}
+
+/* Drag ghost element */
+.drag-ghost {
+  position: absolute;
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.6;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border: 2px dashed var(--figma-accent);
+  background: rgba(59, 130, 246, 0.1);
+  transition: transform 0.05s ease-out;
 }
