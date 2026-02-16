@@ -2,8 +2,8 @@ import JSZip from 'jszip';
 import type { Project, ProjectFile, FileUploadResult, ElementData, FileValidationResult, FileProgress } from '../types';
 
 // Configuration constants
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-const MAX_FILES_COUNT = 500;
+const MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1GB
+const MAX_FILES_COUNT = 2000;
 
 /**
  * Validate file before processing
