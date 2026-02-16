@@ -283,10 +283,11 @@ export function Canvas() {
 
   // Wheel zoom - zoom to mouse position
   const handleWheel = useCallback((e: React.WheelEvent) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      
-      const canvasEl = canvasRef.current;
+    // Allow zoom with just scroll (no modifier needed) when over canvas
+    // Or with Ctrl/Cmd for precision
+    e.preventDefault();
+    
+    const canvasEl = canvasRef.current;
       if (!canvasEl) return;
       
       const rect = canvasEl.getBoundingClientRect();
@@ -306,21 +307,22 @@ export function Canvas() {
         translateX: newTranslateX,
         translateY: newTranslateY
       });
-    }
   }, [canvas.scale, canvas.translateX, canvas.translateY, setCanvas]);
 
   // Keyboard shortcuts for nudging and spacebar pan
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Toggle snap with Cmd/Ctrl + '\' (backslash)
+      if ((e.metaKey || e.ctrlKey) && (e.key === '\\' || e.key === '|' || e.key === ']')) {
+        e.preventDefault();
+        setSnapEnabled(prev => !prev);
+        return;
+      }
+      
       if (e.code === 'Space' && !spacePressed) {
         e.preventDefault();
         setSpacePressed(true);
-      }
-      
-      // Toggle snap with Cmd/Ctrl + '
-      if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
-        e.preventDefault();
-        setSnapEnabled(prev => !prev);
+        return;
       }
       
       // Arrow keys for nudging selected element
@@ -380,13 +382,31 @@ export function Canvas() {
       }
     };
 
+    // Add listeners to window
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
+    
+    // Also add listeners to iframe contentWindow when available
+    const iframe = iframeRef.current;
+    const contentWindow = iframe?.contentWindow;
+    if (contentWindow) {
+      contentWindow.addEventListener('keydown', handleKeyDown);
+      contentWindow.addEventListener('keyup', handleKeyUp);
+    }
+    
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
+      
+      // Cleanup iframe listeners
+      const iframe = iframeRef.current;
+      const contentWindow = iframe?.contentWindow;
+      if (contentWindow) {
+        contentWindow.removeEventListener('keydown', handleKeyDown);
+        contentWindow.removeEventListener('keyup', handleKeyUp);
+      }
     };
-  }, [selectedElementId, spacePressed, setCanvas, debouncedSaveToHistory, getElementBounds]);
+  }, [selectedElementId, spacePressed, setCanvas, debouncedSaveToHistory, getElementBounds, snapEnabled]);
 
   // Cleanup function to remove all event listeners
   const cleanupHandlers = useCallback(() => {
@@ -725,6 +745,51 @@ export function Canvas() {
       if (selected) {
         selected.classList.add('visual-editor-selected');
       }
+    }
+    
+    // Add keyboard event listeners to iframe for shortcuts to work when iframe has focus
+    const handleIframeKeyDown = (e: KeyboardEvent) => {
+      // Forward to parent window for shortcuts
+      if (e.code === 'Space' || e.key === '\\' || e.key === '|' || e.key === ']' || 
+          (e.key.startsWith('Arrow') && !e.ctrlKey && !e.metaKey)) {
+        window.dispatchEvent(new KeyboardEvent('keydown', {
+          code: e.code,
+          key: e.key,
+          ctrlKey: e.ctrlKey,
+          metaKey: e.metaKey,
+          shiftKey: e.shiftKey,
+          altKey: e.altKey,
+          bubbles: true
+        }));
+        e.preventDefault();
+      }
+    };
+    
+    const handleIframeKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        window.dispatchEvent(new KeyboardEvent('keyup', {
+          code: e.code,
+          key: e.key,
+          bubbles: true
+        }));
+      }
+    };
+    
+    contentWindow.addEventListener('keydown', handleIframeKeyDown);
+    contentWindow.addEventListener('keyup', handleIframeKeyUp);
+    
+    // Store these handlers for cleanup
+    const iframeHandlers = handlersRef.current.get(contentWindow as unknown as HTMLElement);
+    if (iframeHandlers) {
+      // Update stored handlers
+      handlersRef.current.set(contentWindow as unknown as HTMLElement, {
+        ...iframeHandlers,
+        mouseenter: () => {},
+        mouseleave: () => {},
+        mousedown: () => {},
+        mousemove: () => {},
+        mouseup: () => {}
+      });
     }
   }, [selectElement, setElementData, debouncedSaveToHistory, cleanupHandlers, canvas.translateX, canvas.translateY, applySnapping, snapEnabled]);
 
