@@ -68,3 +68,14 @@
   color: var(--figma-text);
   pointer-events: none;
 }
+
+/* Selection Styles - injected into iframe */
+.visual-editor-selected {
+  outline: 2px solid #0d99ff !important;
+  outline-offset: -2px !important;
+}
+
+.visual-editor-hover {
+  outline: 2px solid #0d99ff !important;
+  outline-offset: -2px !important;
+}

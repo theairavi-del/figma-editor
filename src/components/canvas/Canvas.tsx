@@ -1,8 +1,18 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback, useMemo } from 'react';
 import { useEditorStore } from '../../store/editorStore';
 import { buildHtmlDocument } from '../../utils/fileUtils';
 import type { ElementData } from '../../types';
 import './Canvas.css';
+
+// Refs for drag state to avoid stale closures in event listeners
+interface DragState {
+  isDragging: boolean;
+  elementId: string | null;
+  startX: number;
+  startY: number;
+  elementStartX: number;
+  elementStartY: number;
+}
 
 export function Canvas() {
   const {
@@ -18,17 +28,30 @@ export function Canvas() {
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [htmlContent, setHtmlContent] = useState('');
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStartPos = useRef({ x: 0, y: 0 });
-  const elementStartPos = useRef({ x: 0, y: 0 });
+  
+  // Use refs for drag state to avoid stale closure issues
+  const dragStateRef = useRef<DragState>({
+    isDragging: false,
+    elementId: null,
+    startX: 0,
+    startY: 0,
+    elementStartX: 0,
+    elementStartY: 0
+  });
+  
+  // Store handlers in refs for cleanup
+  const handlersRef = useRef<Map<HTMLElement, {
+    mouseenter: (e: Event) => void;
+    mouseleave: (e: Event) => void;
+    mousedown: (e: Event) => void;
+    mousemove: (e: Event) => void;
+    mouseup: (e: Event) => void;
+  }>>(new Map());
 
-  // Build HTML content for iframe
-  useEffect(() => {
-    if (currentProject) {
-      const html = buildHtmlDocument(currentProject);
-      setHtmlContent(html);
-    }
+  // Build HTML content for iframe using useMemo instead of useEffect + useState
+  const htmlContent = useMemo(() => {
+    if (!currentProject) return '';
+    return buildHtmlDocument(currentProject);
   }, [currentProject]);
 
   // Pan functionality
@@ -70,47 +93,69 @@ export function Canvas() {
     }
   }, [canvas.scale, setCanvas]);
 
+  // Cleanup function to remove all event listeners
+  const cleanupHandlers = useCallback(() => {
+    const iframe = iframeRef.current;
+    if (!iframe?.contentDocument) return;
+    
+    handlersRef.current.forEach((handlers, el) => {
+      el.removeEventListener('mouseenter', handlers.mouseenter);
+      el.removeEventListener('mouseleave', handlers.mouseleave);
+      el.removeEventListener('mousedown', handlers.mousedown);
+      el.removeEventListener('mousemove', handlers.mousemove);
+      el.removeEventListener('mouseup', handlers.mouseup);
+    });
+    handlersRef.current.clear();
+  }, []);
+
   // Handle iframe load
   const handleIframeLoad = useCallback(() => {
     const iframe = iframeRef.current;
     if (!iframe?.contentDocument) return;
 
     const doc = iframe.contentDocument;
+    const contentWindow = iframe.contentWindow;
+    if (!contentWindow) return;
+
+    // Cleanup existing handlers first
+    cleanupHandlers();
 
     // Add hover and click handlers to all elements
     const addInteractionHandlers = (element: Element) => {
       const el = element as HTMLElement;
       
-      el.addEventListener('mouseenter', () => {
+      const mouseenterHandler = () => {
         const visualId = el.getAttribute('data-visual-id');
-        if (visualId && activeTool === 'select') {
-          el.style.outline = '2px solid #0d99ff';
-          el.style.outlineOffset = '-2px';
+        const currentTool = useEditorStore.getState().activeTool;
+        if (visualId && currentTool === 'select') {
+          el.classList.add('visual-editor-hover');
         }
-      });
+      };
 
-      el.addEventListener('mouseleave', () => {
+      const mouseleaveHandler = () => {
+        const currentSelectedId = useEditorStore.getState().selectedElementId;
         const visualId = el.getAttribute('data-visual-id');
-        if (visualId !== selectedElementId) {
-          el.style.outline = '';
-          el.style.outlineOffset = '';
+        if (visualId !== currentSelectedId) {
+          el.classList.remove('visual-editor-hover');
         }
-      });
+      };
 
-      el.addEventListener('mousedown', (e) => {
-        if (activeTool !== 'select') return;
+      const mousedownHandler = (e: Event) => {
+        const mouseEvent = e as MouseEvent;
+        const currentTool = useEditorStore.getState().activeTool;
+        if (currentTool !== 'select') return;
         
         const visualId = el.getAttribute('data-visual-id');
         if (!visualId) return;
 
-        e.preventDefault();
-        e.stopPropagation();
+        mouseEvent.preventDefault();
+        mouseEvent.stopPropagation();
         
         selectElement(visualId);
 
         // Extract element data
         const rect = el.getBoundingClientRect();
-        const computedStyle = iframe.contentWindow!.getComputedStyle(el);
+        const computedStyle = contentWindow.getComputedStyle(el);
         
         const styles: Record<string, string> = {};
         const relevantProps = [
@@ -151,34 +196,56 @@ export function Canvas() {
 
         // Start drag if element has position
         if (computedStyle.position === 'absolute' || computedStyle.position === 'fixed') {
-          setIsDragging(true);
-          dragStartPos.current = { x: e.clientX, y: e.clientY };
-          const left = parseInt(computedStyle.left) || 0;
-          const top = parseInt(computedStyle.top) || 0;
-          elementStartPos.current = { x: left, y: top };
+          dragStateRef.current = {
+            isDragging: true,
+            elementId: visualId,
+            startX: mouseEvent.clientX,
+            startY: mouseEvent.clientY,
+            elementStartX: parseInt(computedStyle.left) || 0,
+            elementStartY: parseInt(computedStyle.top) || 0
+          };
         }
-      });
+      };
 
-      // Handle drag
-      el.addEventListener('mousemove', (e) => {
-        if (!isDragging || selectedElementId !== el.getAttribute('data-visual-id')) return;
+      const mousemoveHandler = (e: Event) => {
+        const mouseEvent = e as MouseEvent;
+        const state = dragStateRef.current;
+        const currentScale = useEditorStore.getState().canvas.scale;
         
-        const deltaX = (e.clientX - dragStartPos.current.x) / canvas.scale;
-        const deltaY = (e.clientY - dragStartPos.current.y) / canvas.scale;
+        if (!state.isDragging) return;
         
-        const newLeft = elementStartPos.current.x + deltaX;
-        const newTop = elementStartPos.current.y + deltaY;
+        const deltaX = (mouseEvent.clientX - state.startX) / currentScale;
+        const deltaY = (mouseEvent.clientY - state.startY) / currentScale;
+        
+        const newLeft = state.elementStartX + deltaX;
+        const newTop = state.elementStartY + deltaY;
         
         el.style.left = `${newLeft}px`;
         el.style.top = `${newTop}px`;
-      });
+      };
 
-      el.addEventListener('mouseup', () => {
-        if (isDragging) {
-          setIsDragging(false);
+      const mouseupHandler = () => {
+        const state = dragStateRef.current;
+        if (state.isDragging) {
+          dragStateRef.current = { ...state, isDragging: false, elementId: null };
           saveToHistory();
         }
+      };
+
+      // Store handlers for cleanup
+      handlersRef.current.set(el, {
+        mouseenter: mouseenterHandler,
+        mouseleave: mouseleaveHandler,
+        mousedown: mousedownHandler,
+        mousemove: mousemoveHandler,
+        mouseup: mouseupHandler
       });
+
+      el.addEventListener('mouseenter', mouseenterHandler);
+      el.addEventListener('mouseleave', mouseleaveHandler);
+      el.addEventListener('mousedown', mousedownHandler);
+      el.addEventListener('mousemove', mousemoveHandler);
+      el.addEventListener('mouseup', mouseupHandler);
 
       // Recursively add to children
       Array.from(el.children).forEach(addInteractionHandlers);
@@ -187,14 +254,14 @@ export function Canvas() {
     Array.from(doc.body.children).forEach(addInteractionHandlers);
 
     // Maintain selection highlight
-    if (selectedElementId) {
-      const selected = doc.querySelector(`[data-visual-id="${selectedElementId}"]`) as HTMLElement;
+    const currentSelectedId = useEditorStore.getState().selectedElementId;
+    if (currentSelectedId) {
+      const selected = doc.querySelector(`[data-visual-id="${currentSelectedId}"]`) as HTMLElement;
       if (selected) {
-        selected.style.outline = '2px solid #0d99ff';
-        selected.style.outlineOffset = '-2px';
+        selected.classList.add('visual-editor-selected');
       }
     }
-  }, [activeTool, selectElement, setElementData, selectedElementId, isDragging, canvas.scale, saveToHistory]);
+  }, [selectElement, setElementData, saveToHistory, cleanupHandlers]);
 
   // Re-attach handlers when content changes
   useEffect(() => {
@@ -204,26 +271,33 @@ export function Canvas() {
     }
   }, [htmlContent, handleIframeLoad]);
 
-  // Maintain selection outline
+  // Maintain selection outline using CSS classes
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe?.contentDocument) return;
 
-    // Clear all outlines
-    iframe.contentDocument.querySelectorAll('[data-visual-id]').forEach((el) => {
-      (el as HTMLElement).style.outline = '';
-      (el as HTMLElement).style.outlineOffset = '';
+    const doc = iframe.contentDocument;
+    
+    // Clear all selection classes
+    doc.querySelectorAll('[data-visual-id]').forEach((el) => {
+      el.classList.remove('visual-editor-selected');
     });
 
-    // Apply outline to selected
+    // Apply selection class to selected element
     if (selectedElementId) {
-      const selected = iframe.contentDocument.querySelector(`[data-visual-id="${selectedElementId}"]`) as HTMLElement;
+      const selected = doc.querySelector(`[data-visual-id="${selectedElementId}"]`) as HTMLElement;
       if (selected) {
-        selected.style.outline = '2px solid #0d99ff';
-        selected.style.outlineOffset = '-2px';
+        selected.classList.add('visual-editor-selected');
       }
     }
   }, [selectedElementId]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      cleanupHandlers();
+    };
+  }, [cleanupHandlers]);
 
   return (
     <div 

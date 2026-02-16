@@ -28,7 +28,7 @@ export function FileUpload() {
         setError(result.error || 'Failed to process ZIP file');
         setUploadStatus('error');
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred while processing the file');
       setUploadStatus('error');
     } finally {

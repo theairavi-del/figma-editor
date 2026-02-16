@@ -212,13 +212,15 @@ export const useEditorStore = create<EditorState>()(
           newHistory.push(JSON.parse(JSON.stringify(currentProject)));
 
           // Limit history to 50 states
+          let newIndex = newHistory.length - 1;
           if (newHistory.length > 50) {
             newHistory.shift();
+            newIndex = Math.max(0, newIndex - 1);
           }
 
           set({
             history: newHistory,
-            historyIndex: newHistory.length - 1
+            historyIndex: newIndex
           });
         },
 

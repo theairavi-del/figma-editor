@@ -117,11 +117,17 @@ export function PropertiesPanel() {
   const [localStyles, setLocalStyles] = useState<Record<string, string>>({});
   const [localText, setLocalText] = useState('');
 
+  // Sync local state when selected element changes
   useEffect(() => {
     if (selectedElementData) {
       setLocalStyles(selectedElementData.styles || {});
       setLocalText(selectedElementData.textContent || '');
+    } else {
+      setLocalStyles({});
+      setLocalText('');
     }
+    // Only re-sync when element ID changes to avoid overwriting user input during editing
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedElementData?.id]);
 
   const handleStyleChange = useCallback((property: string, value: string) => {

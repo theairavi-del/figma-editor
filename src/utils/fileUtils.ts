@@ -51,12 +51,23 @@ export async function processZipFile(file: File): Promise<FileUploadResult> {
       };
     }
 
-    // Process HTML files to add visual IDs
+    // Process HTML files to add visual IDs with shared counter
+    let globalIdCounter = 0;
     const processedFiles = files.map(file => {
       if (file.type === 'html') {
+        const processed = addVisualIdsToHtml(file.content, globalIdCounter);
+        // Count IDs added to update counter for next file
+        const idMatches = processed.match(/data-visual-id="el-(\d+)"/g);
+        if (idMatches) {
+          const maxId = Math.max(...idMatches.map(match => {
+            const num = match.match(/el-(\d+)/);
+            return num ? parseInt(num[1], 10) : 0;
+          }));
+          globalIdCounter = maxId + 1;
+        }
         return {
           ...file,
-          content: addVisualIdsToHtml(file.content)
+          content: processed
         };
       }
       return file;
@@ -84,9 +95,10 @@ export async function processZipFile(file: File): Promise<FileUploadResult> {
 
 /**
  * Add unique data-visual-id attributes to all elements in HTML
+ * Uses a project-scoped counter to avoid collisions
  */
-function addVisualIdsToHtml(html: string): string {
-  let idCounter = 0;
+function addVisualIdsToHtml(html: string, startCounter = 0): string {
+  let idCounter = startCounter;
   
   // Use a more robust approach with DOM parsing
   const parser = new DOMParser();
