@@ -1,112 +1,126 @@
-# Figma Editor - Hour 2 Update
+# Figma Editor - Hour 3 Update
 
-**Date:** Monday, February 16th, 2026 - 1:45 AM EST
+**Date:** Monday, February 16th, 2026 - 2:00 AM EST
 
 ## Changes Made
 
-### Canvas Improvements
+### PropertiesPanel Improvements
 
-1. **Zoom-to-Mouse-Position**
-   - Holding Ctrl/Cmd + scroll now zooms towards the cursor position
-   - Smooth zooming with proper transform calculations
+1. **Visual Spacing Controls (Figma-Style)**
+   - Padding and Margin now use visual box controls
+   - 4 inputs arranged around a center box (top/right/bottom/left)
+   - Link/unlink button to sync all sides
+   - Values persist and parse from shorthand CSS (e.g., `padding: 10px 20px`)
 
-2. **Spacebar Panning**
-   - Hold Space to temporarily switch to pan mode
-   - Cursor changes to grab/grabbing while space is held
-   - Release space to return to previous tool
+2. **Enhanced Color Picker**
+   - 32-color preset palette (grayscale, primary, pastels, brand)
+   - Visual color swatch trigger button
+   - Native color picker for custom colors
+   - Alpha/opacity slider support
+   - Proper handling of named colors and RGB/RGBA
+   - Transparent pattern overlay for no-color state
 
-3. **Keyboard Nudge**
-   - Arrow keys move selected elements by 1px
-   - Shift + Arrow keys move by 10px
-   - Only works on absolutely/fixed/relatively positioned elements
-   - Automatically saves to history after nudge
+3. **Border Control**
+   - Width input with px suffix
+   - Style dropdown (none, solid, dashed, dotted, double)
+   - Color picker for border color
+   - Radius input for rounded corners
+   - Only shows color/radius when width > 0
 
-4. **Improved Grid**
-   - Grid now scales smoothly with zoom level
-   - Uses CSS transitions for smooth feel
+4. **Shadow Control**
+   - Toggle checkbox to enable/disable shadows
+   - X, Y, Blur, Spread inputs
+   - Color picker with alpha support
+   - Smooth slide-down animation when enabled
+   - Defaults to subtle shadow when enabled
 
-### Selection UX Changes
+5. **Layout Improvements**
+   - Position dropdown (static, relative, absolute, fixed, sticky)
+   - Display mode badge shown in section header
+   - Flexbox controls (when display is flex):
+     - Direction (row, row-reverse, column, column-reverse)
+     - Justify content (start, center, end, space-between, space-around)
+     - Align items (stretch, start, center, end)
+     - Gap input
 
-1. **SelectionOverlay Component**
-   - Renders selection outline outside the iframe for better performance
-   - Shows solid blue border for selected elements
-   - Shows dashed blue border for hovered elements
-   - Displays element dimensions (width × height) label
+6. **Typography Enhancements**
+   - Line height input added
+   - Better font weight options (300-800)
+   - Improved text align with icons
 
-2. **Resize Handles**
-   - 8 resize handles displayed around selected elements
-   - Handles scale inversely with zoom to remain visible
-   - Hover effects on handles (scale up and color change)
+### New Utilities
 
-3. **Hover State**
-   - Real-time hover detection with bounds calculation
-   - Dashed outline differentiates hover from selection
-   - Auto-clears when mouse leaves element
+- **colorUtils.ts**
+  - `parseColor()` - Parse any CSS color to structured format
+  - `rgbToHsl()` / `hslToHex()` - Color space conversions
+  - `formatColor()` - Output color with proper alpha
+  - `normalizeColor()` - Convert named colors to hex
+  - `COLOR_PRESETS` - 32-color palette array
+  - `NAMED_COLORS` - CSS named color mappings
 
-4. **Canvas Hints**
-   - Added hint bar at bottom showing keyboard shortcuts
-   - Subtle fade animation for non-intrusive display
+### UI/UX Improvements
 
-5. **Zoom Indicator**
-   - Double-click to reset zoom to 100% and center
-   - Hover effect for better interactivity
-
-6. **Empty State**
-   - Improved empty state with icon and hints
-   - Better visual styling matching Figma aesthetic
+- Empty state now uses SVG icon instead of emoji
+- Section headers show badges (e.g., FLEX, BLOCK)
+- Smooth animations for expanding sections
+- Better focus states with accent color rings
+- Improved scrollbar styling
+- Consistent 8px/12px/16px spacing system
 
 ### Bugs Fixed
 
-1. Fixed selection bounds not updating during element drag
-2. Fixed selection bounds not updating after style changes
-3. Fixed hover state persisting after element selection
+1. Fixed color input not handling RGB/RGBA values
+2. Fixed padding/margin not parsing shorthand CSS values
+3. Fixed TypeScript strictness issues with boolean props
+4. Improved property update performance
 
 ## Technical Details
 
 - **New Files:**
-  - `src/components/canvas/SelectionOverlay.tsx` - Selection visualization
-  - `src/components/canvas/SelectionOverlay.css` - Selection styles
+  - `src/utils/colorUtils.ts` - Color parsing and formatting utilities
 
 - **Modified Files:**
-  - `src/components/canvas/Canvas.tsx` - Core canvas improvements
-  - `src/components/canvas/Canvas.css` - Canvas styling updates
+  - `src/components/panels/PropertiesPanel.tsx` - Complete rewrite with new components
+  - `src/components/panels/PropertiesPanel.css` - New styles for all controls
 
-## Plan for Hour 3
+## Plan for Hour 4
 
 1. **Multi-Selection Support**
    - Cmd/Ctrl + click to multi-select
-   - Marquee/box selection (drag to select multiple)
-   - Selection groups in layers panel
+   - Show "Multiple Elements" header when >1 selected
+   - Property panel shows common values only
 
-2. **Better Drag & Drop**
-   - Preview ghost while dragging
-   - Snap to grid option
-   - Alignment guides
+2. **Layer Panel Improvements**
+   - Drag and drop reordering
+   - Expand/collapse nested elements
+   - Better visibility toggle
+   - Lock/hide layer buttons
 
-3. **History Improvements**
-   - Visual history timeline
+3. **History/Timeline Panel**
+   - Visual undo/redo buttons
+   - History list with timestamps
    - Named checkpoints
-   - Better undo/redo UI
 
-4. **Element Creation**
-   - Add rectangle tool
-   - Add text tool with click-to-place
-   - Basic shape library
+4. **Element Creation Tools**
+   - Rectangle tool (click and drag)
+   - Text tool (click to place)
+   - Basic shapes library
 
-5. **Performance Optimizations**
-   - Debounce selection updates
-   - Virtualize large layer lists
-   - Optimize re-renders
+5. **Keyboard Shortcuts Help**
+   - Overlay with all shortcuts
+   - Quick reference in UI
 
 ## Testing Notes
 
 - Build passes successfully
 - TypeScript compilation clean
 - Manual testing checklist:
-  - [ ] Pan with spacebar
-  - [ ] Zoom to mouse position
-  - [ ] Arrow key nudge
-  - [ ] Selection overlay shows
-  - [ ] Hover state works
-  - [ ] Resize handles visible
-  - [ ] Zoom reset on double-click
+  - [x] Color picker opens/closes
+  - [x] Color presets apply
+  - [x] Alpha slider works
+  - [x] Spacing box inputs work
+  - [x] Link/unlink spacing sides
+  - [x] Border controls toggle
+  - [x] Shadow enable/disable
+  - [x] Flex controls show for flex display
+  - [x] Position dropdown updates
