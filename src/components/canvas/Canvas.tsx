@@ -1,8 +1,9 @@
-import { useEffect, useRef, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import { useEditorStore } from '../../store/editorStore';
 import { buildHtmlDocument } from '../../utils/fileUtils';
 import type { ElementData } from '../../types';
 import './Canvas.css';
+import { SelectionOverlay } from './SelectionOverlay';
 
 // Refs for drag state to avoid stale closures in event listeners
 interface DragState {
@@ -12,6 +13,16 @@ interface DragState {
   startY: number;
   elementStartX: number;
   elementStartY: number;
+}
+
+// Element bounds for selection overlay
+interface ElementBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  scrollX: number;
+  scrollY: number;
 }
 
 export function Canvas() {
@@ -28,6 +39,9 @@ export function Canvas() {
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [selectedBounds, setSelectedBounds] = useState<ElementBounds | null>(null);
+  const [hoveredBounds, setHoveredBounds] = useState<ElementBounds | null>(null);
+  const [spacePressed, setSpacePressed] = useState(false);
   
   // Use refs for drag state to avoid stale closure issues
   const dragStateRef = useRef<DragState>({
@@ -54,9 +68,41 @@ export function Canvas() {
     return buildHtmlDocument(currentProject);
   }, [currentProject]);
 
+  // Get element bounds relative to canvas
+  const getElementBounds = useCallback((elementId: string | null): ElementBounds | null => {
+    const iframe = iframeRef.current;
+    if (!iframe?.contentDocument || !elementId) return null;
+
+    const el = iframe.contentDocument.querySelector(`[data-visual-id="${elementId}"]`) as HTMLElement;
+    if (!el) return null;
+
+    const rect = el.getBoundingClientRect();
+    const iframeRect = iframe.getBoundingClientRect();
+    
+    return {
+      x: rect.left - iframeRect.left + canvas.translateX,
+      y: rect.top - iframeRect.top + canvas.translateY,
+      width: rect.width,
+      height: rect.height,
+      scrollX: iframe.contentDocument.documentElement.scrollLeft,
+      scrollY: iframe.contentDocument.documentElement.scrollTop
+    };
+  }, [canvas.translateX, canvas.translateY]);
+
+  // Update selection bounds when selection changes
+  useEffect(() => {
+    if (selectedElementId) {
+      const bounds = getElementBounds(selectedElementId);
+      setSelectedBounds(bounds);
+    } else {
+      setSelectedBounds(null);
+    }
+  }, [selectedElementId, canvas.scale, canvas.translateX, canvas.translateY, getElementBounds]);
+
   // Pan functionality
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (activeTool === 'pan' || (e.button === 1) || (e.button === 0 && e.shiftKey)) {
+    // Middle mouse or space+click or pan tool starts panning
+    if (activeTool === 'pan' || e.button === 1 || spacePressed) {
       e.preventDefault();
       setCanvas({
         isPanning: true,
@@ -64,7 +110,7 @@ export function Canvas() {
         lastMouseY: e.clientY
       });
     }
-  }, [activeTool, setCanvas]);
+  }, [activeTool, spacePressed, setCanvas]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (canvas.isPanning) {
@@ -84,14 +130,109 @@ export function Canvas() {
     setCanvas({ isPanning: false });
   }, [setCanvas]);
 
-  // Wheel zoom
+  // Wheel zoom - zoom to mouse position
   const handleWheel = useCallback((e: React.WheelEvent) => {
     if (e.ctrlKey || e.metaKey) {
       e.preventDefault();
+      
+      const canvasEl = canvasRef.current;
+      if (!canvasEl) return;
+      
+      const rect = canvasEl.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      
       const delta = e.deltaY > 0 ? 0.9 : 1.1;
-      setCanvas({ scale: Math.max(0.1, Math.min(5, canvas.scale * delta)) });
+      const newScale = Math.max(0.1, Math.min(5, canvas.scale * delta));
+      
+      // Zoom towards mouse position
+      const scaleRatio = newScale / canvas.scale;
+      const newTranslateX = mouseX - (mouseX - canvas.translateX) * scaleRatio;
+      const newTranslateY = mouseY - (mouseY - canvas.translateY) * scaleRatio;
+      
+      setCanvas({ 
+        scale: newScale,
+        translateX: newTranslateX,
+        translateY: newTranslateY
+      });
     }
-  }, [canvas.scale, setCanvas]);
+  }, [canvas.scale, canvas.translateX, canvas.translateY, setCanvas]);
+
+  // Keyboard shortcuts for nudging and spacebar pan
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !spacePressed) {
+        e.preventDefault();
+        setSpacePressed(true);
+      }
+      
+      // Arrow keys for nudging selected element
+      if (selectedElementId && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const step = e.shiftKey ? 10 : 1;
+        let handled = false;
+        
+        const iframe = iframeRef.current;
+        if (iframe?.contentDocument) {
+          const el = iframe.contentDocument.querySelector(`[data-visual-id="${selectedElementId}"]`) as HTMLElement;
+          if (el) {
+            const computedStyle = iframe.contentWindow?.getComputedStyle(el);
+            const position = computedStyle?.position;
+            
+            if (position === 'absolute' || position === 'fixed' || position === 'relative') {
+              const currentLeft = parseInt(el.style.left || computedStyle?.left || '0');
+              const currentTop = parseInt(el.style.top || computedStyle?.top || '0');
+              
+              switch (e.key) {
+                case 'ArrowLeft':
+                  el.style.left = `${currentLeft - step}px`;
+                  handled = true;
+                  break;
+                case 'ArrowRight':
+                  el.style.left = `${currentLeft + step}px`;
+                  handled = true;
+                  break;
+                case 'ArrowUp':
+                  el.style.top = `${currentTop - step}px`;
+                  handled = true;
+                  break;
+                case 'ArrowDown':
+                  el.style.top = `${currentTop + step}px`;
+                  handled = true;
+                  break;
+              }
+              
+              if (handled) {
+                e.preventDefault();
+                // Update bounds
+                const bounds = getElementBounds(selectedElementId);
+                setSelectedBounds(bounds);
+                // Save to history on key up
+              }
+            }
+          }
+        }
+      }
+    };
+    
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        setSpacePressed(false);
+        setCanvas({ isPanning: false });
+      }
+      
+      // Save history after nudging
+      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key) && selectedElementId) {
+        saveToHistory();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [selectedElementId, spacePressed, setCanvas, saveToHistory, getElementBounds]);
 
   // Cleanup function to remove all event listeners
   const cleanupHandlers = useCallback(() => {
@@ -127,17 +268,27 @@ export function Canvas() {
       const mouseenterHandler = () => {
         const visualId = el.getAttribute('data-visual-id');
         const currentTool = useEditorStore.getState().activeTool;
-        if (visualId && currentTool === 'select') {
+        const currentSelected = useEditorStore.getState().selectedElementId;
+        
+        if (visualId && currentTool === 'select' && visualId !== currentSelected) {
           el.classList.add('visual-editor-hover');
+          // Update hover bounds for overlay
+          const iframeRect = iframe.getBoundingClientRect();
+          const rect = el.getBoundingClientRect();
+          setHoveredBounds({
+            x: rect.left - iframeRect.left + canvas.translateX,
+            y: rect.top - iframeRect.top + canvas.translateY,
+            width: rect.width,
+            height: rect.height,
+            scrollX: 0,
+            scrollY: 0
+          });
         }
       };
 
       const mouseleaveHandler = () => {
-        const currentSelectedId = useEditorStore.getState().selectedElementId;
-        const visualId = el.getAttribute('data-visual-id');
-        if (visualId !== currentSelectedId) {
-          el.classList.remove('visual-editor-hover');
-        }
+        el.classList.remove('visual-editor-hover');
+        setHoveredBounds(null);
       };
 
       const mousedownHandler = (e: Event) => {
@@ -231,6 +382,12 @@ export function Canvas() {
         
         el.style.left = `${newLeft}px`;
         el.style.top = `${newTop}px`;
+        
+        // Update selection bounds during drag
+        if (state.elementId) {
+          const bounds = getElementBounds(state.elementId);
+          setSelectedBounds(bounds);
+        }
       };
 
       const mouseupHandler = () => {
@@ -270,7 +427,7 @@ export function Canvas() {
         selected.classList.add('visual-editor-selected');
       }
     }
-  }, [selectElement, setElementData, saveToHistory, cleanupHandlers]);
+  }, [selectElement, setElementData, saveToHistory, cleanupHandlers, canvas.translateX, canvas.translateY, getElementBounds]);
 
   // Re-attach handlers when content changes
   useEffect(() => {
@@ -311,6 +468,9 @@ export function Canvas() {
       const el = iframe.contentDocument.querySelector(`[data-visual-id="${elementId}"]`) as HTMLElement;
       if (el) {
         el.style.setProperty(property, value);
+        // Update bounds after style change
+        const bounds = getElementBounds(elementId);
+        setSelectedBounds(bounds);
       }
     };
 
@@ -332,7 +492,7 @@ export function Canvas() {
       window.removeEventListener('editor:style-change', handleStyleChange as EventListener);
       window.removeEventListener('editor:text-change', handleTextChange as EventListener);
     };
-  }, []);
+  }, [getElementBounds]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -341,17 +501,26 @@ export function Canvas() {
     };
   }, [cleanupHandlers]);
 
+  // Double-click zoom indicator to fit
+  const handleZoomIndicatorDoubleClick = useCallback(() => {
+    setCanvas({
+      scale: 1,
+      translateX: 0,
+      translateY: 0
+    });
+  }, [setCanvas]);
+
   return (
     <div 
       ref={canvasRef}
-      className={`canvas ${activeTool === 'pan' ? 'panning' : ''} ${canvas.isPanning ? 'is-panning' : ''}`}
+      className={`canvas ${activeTool === 'pan' || spacePressed ? 'panning' : ''} ${canvas.isPanning ? 'is-panning' : ''}`}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
       onWheel={handleWheel}
     >
-      {/* Grid Background */}
+      {/* Grid Background - now scales properly */}
       <div 
         className="canvas-grid"
         style={{
@@ -379,15 +548,50 @@ export function Canvas() {
           />
         ) : (
           <div className="canvas-empty">
-            <p>No content loaded</p>
+            <div className="canvas-empty-icon">📄</div>
+            <p>Drop a ZIP file to get started</p>
+            <p className="canvas-empty-hint">or use the upload button above</p>
           </div>
         )}
       </div>
 
+      {/* Selection Overlay - renders outside iframe for better UX */}
+      {selectedBounds && (
+        <SelectionOverlay 
+          bounds={selectedBounds}
+          scale={canvas.scale}
+          isSelected={true}
+        />
+      )}
+      
+      {/* Hover Overlay */}
+      {hoveredBounds && !selectedBounds && (
+        <SelectionOverlay 
+          bounds={hoveredBounds}
+          scale={canvas.scale}
+          isSelected={false}
+        />
+      )}
+
       {/* Zoom Indicator */}
-      <div className="canvas-zoom-indicator">
+      <div 
+        className="canvas-zoom-indicator"
+        onDoubleClick={handleZoomIndicatorDoubleClick}
+        title="Double-click to reset zoom"
+      >
         {Math.round(canvas.scale * 100)}%
       </div>
+      
+      {/* Canvas Hint */}
+      {currentProject && (
+        <div className="canvas-hint">
+          <span>Space + drag to pan</span>
+          <span>•</span>
+          <span>Ctrl + scroll to zoom</span>
+          <span>•</span>
+          <span>Arrow keys to nudge</span>
+        </div>
+      )}
     </div>
   );
 }

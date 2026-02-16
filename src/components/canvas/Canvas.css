@@ -4,6 +4,7 @@
   overflow: hidden;
   background: var(--canvas-bg);
   cursor: default;
+  user-select: none;
 }
 
 .canvas.panning {
@@ -14,13 +15,14 @@
   cursor: grabbing;
 }
 
-/* Grid Background */
+/* Grid Background - improved scaling */
 .canvas-grid {
   position: absolute;
   inset: 0;
   background-image: 
     radial-gradient(circle, var(--canvas-dot) 1px, transparent 1px);
   pointer-events: none;
+  transition: background-size 0.1s ease-out;
 }
 
 /* Canvas Content */
@@ -44,6 +46,7 @@
 /* Empty State */
 .canvas-empty {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   width: 600px;
@@ -52,9 +55,25 @@
   border-radius: 8px;
   color: var(--figma-text-secondary);
   transform: translate(-50%, -50%);
+  gap: 12px;
 }
 
-/* Zoom Indicator */
+.canvas-empty-icon {
+  font-size: 48px;
+  opacity: 0.5;
+}
+
+.canvas-empty p {
+  margin: 0;
+  font-size: 16px;
+}
+
+.canvas-empty-hint {
+  font-size: 13px;
+  opacity: 0.6;
+}
+
+/* Zoom Indicator - improved */
 .canvas-zoom-indicator {
   position: absolute;
   bottom: 16px;
@@ -66,16 +85,48 @@
   font-size: 12px;
   font-weight: 500;
   color: var(--figma-text);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.canvas-zoom-indicator:hover {
+  background: var(--figma-bg-hover);
+}
+
+/* Canvas Hint */
+.canvas-hint {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--figma-bg-secondary);
+  border: 1px solid var(--figma-border);
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--figma-text-secondary);
   pointer-events: none;
+  opacity: 0.8;
 }
 
 /* Selection Styles - injected into iframe */
 .visual-editor-selected {
-  outline: 2px solid #0d99ff !important;
-  outline-offset: -2px !important;
+  outline: none !important;
 }
 
 .visual-editor-hover {
-  outline: 2px solid #0d99ff !important;
-  outline-offset: -2px !important;
+  outline: none !important;
+}
+
+/* Spacebar hint animation */
+@keyframes fadeHint {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 0.4; }
+}
+
+.canvas-hint {
+  animation: fadeHint 3s ease-in-out infinite;
 }

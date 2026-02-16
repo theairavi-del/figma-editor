@@ -1,0 +1,56 @@
+.selection-overlay {
+  position: absolute;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.selection-overlay.selected {
+  z-index: 101;
+}
+
+.selection-border {
+  position: absolute;
+  inset: 0;
+  border-style: solid;
+  border-color: #0d99ff;
+}
+
+.selection-overlay.selected .selection-border {
+  border-color: #0d99ff;
+}
+
+.selection-overlay.hovered .selection-border {
+  border-color: #0d99ff;
+  border-style: dashed;
+  opacity: 0.6;
+}
+
+.selection-label {
+  position: absolute;
+  top: -24px;
+  left: 0;
+  background: #0d99ff;
+  color: white;
+  border-radius: 3px;
+  font-weight: 500;
+  white-space: nowrap;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.selection-overlay.hovered .selection-label {
+  display: none;
+}
+
+.selection-handle {
+  position: absolute;
+  background: white;
+  border: 1px solid #0d99ff;
+  border-radius: 1px;
+  pointer-events: auto;
+  transition: transform 0.1s ease;
+}
+
+.selection-handle:hover {
+  transform: scale(1.2);
+  background: #0d99ff;
+}
