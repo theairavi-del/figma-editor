@@ -2,8 +2,13 @@
 
 A production-quality visual website builder that looks and feels like Figma. Edit HTML websites visually with a powerful canvas-based interface.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Version](https://img.shields.io/badge/version-2.0.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
+![Build](https://img.shields.io/badge/build-passing-brightgreen)
+![React](https://img.shields.io/badge/react-19-61DAFB)
+![TypeScript](https://img.shields.io/badge/typescript-5.7-3178C6)
+
+🚀 **[Live Demo](https://theairavi-del.github.io/figma-editor/)**
 
 ## Features
 
