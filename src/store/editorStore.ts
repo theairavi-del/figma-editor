@@ -205,6 +205,23 @@ export const useEditorStore = create<EditorState>()(
             }
           },
 
+          // Page Navigation
+          setCurrentPage: (htmlPath: string) => {
+            const current = get().currentProject;
+            if (!current) return;
+
+            // Update rootHtmlPath to switch pages
+            set({
+              currentProject: {
+                ...current,
+                rootHtmlPath: htmlPath,
+                modifiedAt: Date.now()
+              },
+              selectedElementId: null,
+              selectedElementData: null
+            });
+          },
+
           // Canvas Actions
           setCanvas: (canvas) => {
             set((state) => ({

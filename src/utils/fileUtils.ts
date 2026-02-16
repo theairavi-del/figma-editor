@@ -384,6 +384,43 @@ export function buildHtmlDocument(project: Project): string {
 
   let html = htmlFile.content;
 
+  // Inject visual editor styles FIRST (so they can be overridden by user CSS if needed)
+  const visualEditorStyles = `
+<style data-injected="visual-editor">
+  /* Visual Editor Base Styles */
+  [data-visual-id] {
+    position: relative;
+  }
+  [data-visual-id].visual-editor-hover {
+    outline: 1px dashed #00ff88 !important;
+    outline-offset: 2px !important;
+    cursor: pointer !important;
+  }
+  [data-visual-id].visual-editor-selected {
+    outline: 2px solid #00aaff !important;
+    outline-offset: 2px !important;
+  }
+  [data-visual-id].visual-editor-dragging {
+    cursor: grabbing !important;
+    opacity: 0.9 !important;
+  }
+  /* Ensure images and other elements are selectable */
+  img[data-visual-id], video[data-visual-id], iframe[data-visual-id] {
+    pointer-events: auto !important;
+  }
+</style>`;
+
+  // Inject visual editor styles before closing head tag
+  if (html.includes('</head>')) {
+    html = html.replace('</head>', `${visualEditorStyles}\n</head>`);
+  } else if (html.includes('<body')) {
+    // If no head tag, inject at the start of body
+    html = html.replace('<body', `${visualEditorStyles}\n<body`);
+  } else {
+    // If neither, prepend to the whole document
+    html = visualEditorStyles + html;
+  }
+
   // Inject CSS files
   const cssFiles = project.files.filter(f => f.type === 'css');
   cssFiles.forEach(cssFile => {

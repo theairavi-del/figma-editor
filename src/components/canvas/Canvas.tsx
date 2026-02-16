@@ -513,17 +513,21 @@ export function Canvas() {
 
         setElementData(data);
 
-        // Start drag if element has position
-        if (computedStyle.position === 'absolute' || computedStyle.position === 'fixed') {
+        // Start drag if element is positioned (absolute, fixed, or relative)
+        if (computedStyle.position === 'absolute' || computedStyle.position === 'fixed' || computedStyle.position === 'relative') {
           const elRect = el.getBoundingClientRect();
+          
+          // Get current position values
+          const currentLeft = parseInt(computedStyle.left) || 0;
+          const currentTop = parseInt(computedStyle.top) || 0;
           
           dragStateRef.current = {
             isDragging: true,
             elementId: visualId,
             startX: mouseEvent.clientX,
             startY: mouseEvent.clientY,
-            elementStartX: parseInt(computedStyle.left) || 0,
-            elementStartY: parseInt(computedStyle.top) || 0,
+            elementStartX: currentLeft,
+            elementStartY: currentTop,
             hasMoved: false,
             dragOffsetX: mouseEvent.clientX - elRect.left,
             dragOffsetY: mouseEvent.clientY - elRect.top
@@ -636,6 +640,84 @@ export function Canvas() {
 
     Array.from(doc.body.children).forEach(addInteractionHandlers);
 
+    // Intercept link clicks for multi-page navigation
+    const currentProject = useEditorStore.getState().currentProject;
+    if (currentProject) {
+      // Helper function to resolve relative paths
+      const resolvePath = (basePath: string, relativePath: string): string => {
+        // Remove any query strings or hashes for path resolution
+        const cleanPath = relativePath.split('?')[0].split('#')[0];
+        
+        if (cleanPath.startsWith('/')) {
+          return cleanPath.slice(1);
+        }
+        if (cleanPath.startsWith('./')) {
+          const baseDir = basePath.split('/').slice(0, -1).join('/') || '';
+          return baseDir ? `${baseDir}/${cleanPath.slice(2)}` : cleanPath.slice(2);
+        }
+        if (cleanPath.startsWith('../')) {
+          const baseParts = basePath.split('/').slice(0, -1);
+          let relativeParts = cleanPath.split('/');
+          while (relativeParts[0] === '..') {
+            baseParts.pop();
+            relativeParts.shift();
+          }
+          return [...baseParts, ...relativeParts].join('/');
+        }
+        // Same directory
+        const baseDir = basePath.split('/').slice(0, -1).join('/') || '';
+        return baseDir ? `${baseDir}/${cleanPath}` : cleanPath;
+      };
+      
+      const currentPage = currentProject.rootHtmlPath;
+      
+      doc.querySelectorAll('a[href]').forEach((link) => {
+        const anchor = link as HTMLAnchorElement;
+        const href = anchor.getAttribute('href');
+        if (!href) return;
+        
+        // Skip external URLs, anchors, javascript, and mailto
+        if (href.startsWith('http') || href.startsWith('//') || href.startsWith('#') || 
+            href.startsWith('javascript:') || href.startsWith('mailto:') || href.startsWith('tel:')) return;
+        
+        // Resolve the path relative to current page
+        const resolvedPath = resolvePath(currentPage, href);
+        
+        // Check if this is a link to another HTML file in the project
+        const possiblePaths = [
+          resolvedPath,
+          resolvedPath + '.html',
+          resolvedPath + '.htm',
+          resolvedPath.replace(/\/$/, '') + '/index.html',
+          resolvedPath.replace(/\/$/, '') + '/index.htm'
+        ];
+        
+        const htmlFile = currentProject.files.find(f => 
+          f.type === 'html' && possiblePaths.some(p => 
+            f.path.toLowerCase() === p.toLowerCase() || 
+            f.path.toLowerCase().endsWith('/' + p.toLowerCase())
+          )
+        );
+        
+        if (htmlFile) {
+          // Remove existing click handlers to avoid duplicates
+          const newAnchor = anchor.cloneNode(true) as HTMLAnchorElement;
+          anchor.parentNode?.replaceChild(newAnchor, anchor);
+          
+          newAnchor.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Switch to the new page
+            useEditorStore.getState().setCurrentPage(htmlFile.path);
+          });
+          
+          // Visual indicator that this is an internal link
+          newAnchor.style.cursor = 'pointer';
+        }
+      });
+    }
+
     // Maintain selection highlight
     const currentSelectedId = useEditorStore.getState().selectedElementId;
     if (currentSelectedId) {
@@ -646,11 +728,26 @@ export function Canvas() {
     }
   }, [selectElement, setElementData, debouncedSaveToHistory, cleanupHandlers, canvas.translateX, canvas.translateY, applySnapping, snapEnabled]);
 
-  // Re-attach handlers when content changes
+  // Re-attach handlers when content changes - use iframe onLoad instead of timeout
   useEffect(() => {
     if (htmlContent && iframeRef.current) {
-      const timer = setTimeout(handleIframeLoad, 100);
-      return () => clearTimeout(timer);
+      const iframe = iframeRef.current;
+      
+      // Wait for iframe to fully load
+      const handleLoad = () => {
+        handleIframeLoad();
+      };
+      
+      iframe.onload = handleLoad;
+      
+      // Fallback: if already loaded (cached), call handler directly
+      if (iframe.contentDocument?.readyState === 'complete') {
+        handleLoad();
+      }
+      
+      return () => {
+        iframe.onload = null;
+      };
     }
   }, [htmlContent, handleIframeLoad]);
 
@@ -772,7 +869,7 @@ export function Canvas() {
             data-preview-frame
             srcDoc={htmlContent}
             className="canvas-iframe"
-            sandbox="allow-scripts"
+            sandbox="allow-scripts allow-same-origin"
             title="Preview"
           />
         ) : (

@@ -108,6 +108,7 @@ export interface EditorState {
   updateElement: (elementId: string, updates: Partial<ElementData>) => void;
   updateElementStyle: (elementId: string, property: CSSProperty | string, value: string) => void;
   updateElementText: (elementId: string, text: string) => void;
+  setCurrentPage: (htmlPath: string) => void;
   setCanvas: (canvas: Partial<CanvasState>) => void;
   zoomIn: () => void;
   zoomOut: () => void;
