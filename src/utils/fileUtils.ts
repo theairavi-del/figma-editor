@@ -445,21 +445,65 @@ export function buildHtmlDocument(project: Project): string {
 }
 
 /**
+ * Capture current DOM state from iframe and update project HTML
+ * This serializes the modified DOM back to HTML string
+ */
+export function captureHtmlFromIframe(iframe: HTMLIFrameElement, originalHtml: string): string {
+  if (!iframe.contentDocument) return originalHtml;
+  
+  const doc = iframe.contentDocument;
+  
+  // Clone the document to avoid modifying the live DOM
+  const clone = doc.documentElement.cloneNode(true) as HTMLElement;
+  
+  // Remove visual editor injected styles
+  const injectedStyles = clone.querySelectorAll('style[data-injected="visual-editor"]');
+  injectedStyles.forEach(el => el.remove());
+  
+  // Remove visual editor classes from all elements
+  const allElements = clone.querySelectorAll('[data-visual-id]');
+  allElements.forEach(el => {
+    el.classList.remove('visual-editor-hover', 'visual-editor-selected', 'visual-editor-dragging');
+  });
+  
+  // Remove data-visual-id attributes (they were added for editing)
+  allElements.forEach(el => {
+    el.removeAttribute('data-visual-id');
+  });
+  
+  // Capture inline styles that were modified during editing
+  // The inline styles are already on the elements from the editing process
+  
+  // Return the cleaned HTML
+  return clone.outerHTML;
+}
+
+/**
  * Create a ZIP file from project files with progress tracking
+ * Optionally captures current iframe state for HTML files
  */
 export async function createZipFromProject(
   project: Project,
-  onProgress?: (percent: number) => void
+  onProgress?: (percent: number) => void,
+  iframe?: HTMLIFrameElement | null
 ): Promise<Blob> {
   const zip = new JSZip();
   const totalFiles = project.files.length;
 
   project.files.forEach((file, index) => {
-    // Remove injected styles when exporting
     let content = file.content;
+    
     if (file.type === 'html') {
+      // If this is the current page being edited and we have an iframe, capture its state
+      if (iframe && file.path === project.rootHtmlPath) {
+        content = captureHtmlFromIframe(iframe, file.content);
+      }
+      
+      // Remove injected styles when exporting
       content = content.replace(/<style data-injected="true">[\s\S]*?<\/style>\n?/g, '');
+      content = content.replace(/<style data-injected="visual-editor">[\s\S]*?<\/style>\n?/g, '');
     }
+    
     zip.file(file.path, content);
     
     onProgress?.(Math.round(((index + 1) / totalFiles) * 80));

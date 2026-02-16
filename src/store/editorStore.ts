@@ -168,8 +168,9 @@ export const useEditorStore = create<EditorState>()(
 
           updateElementStyle: (elementId, property, value) => {
             const state = get();
-            if (!state.selectedElementData) return;
+            if (!state.selectedElementData || !state.currentProject) return;
 
+            // Update selectedElementData
             const updatedData = {
               ...state.selectedElementData,
               styles: {
@@ -177,20 +178,48 @@ export const useEditorStore = create<EditorState>()(
                 [property]: value
               }
             };
-
             set({ selectedElementData: updatedData });
             
+            // Dispatch event to update DOM
             if (typeof window !== 'undefined') {
               window.dispatchEvent(new CustomEvent('editor:style-change', {
                 detail: { elementId, property, value }
               }));
             }
+            
+            // Save to project file
+            const current = state.currentProject;
+            const updatedFiles = current.files.map(file => {
+              if (file.type === 'html' && file.path === current.rootHtmlPath) {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(file.content, 'text/html');
+                const element = doc.querySelector(`[data-visual-id="${elementId}"]`);
+                
+                if (element) {
+                  (element as HTMLElement).style.setProperty(property, value);
+                  return {
+                    ...file,
+                    content: doc.documentElement.outerHTML
+                  };
+                }
+              }
+              return file;
+            });
+            
+            set({
+              currentProject: {
+                ...current,
+                files: updatedFiles,
+                modifiedAt: Date.now()
+              }
+            });
           },
 
           updateElementText: (elementId, text) => {
             const state = get();
-            if (!state.selectedElementData) return;
+            if (!state.selectedElementData || !state.currentProject) return;
 
+            // Update selectedElementData
             set({
               selectedElementData: {
                 ...state.selectedElementData,
@@ -198,11 +227,39 @@ export const useEditorStore = create<EditorState>()(
               }
             });
 
+            // Dispatch event to update DOM
             if (typeof window !== 'undefined') {
               window.dispatchEvent(new CustomEvent('editor:text-change', {
                 detail: { elementId, text }
               }));
             }
+            
+            // Save to project file
+            const current = state.currentProject;
+            const updatedFiles = current.files.map(file => {
+              if (file.type === 'html' && file.path === current.rootHtmlPath) {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(file.content, 'text/html');
+                const element = doc.querySelector(`[data-visual-id="${elementId}"]`);
+                
+                if (element) {
+                  element.textContent = text;
+                  return {
+                    ...file,
+                    content: doc.documentElement.outerHTML
+                  };
+                }
+              }
+              return file;
+            });
+            
+            set({
+              currentProject: {
+                ...current,
+                files: updatedFiles,
+                modifiedAt: Date.now()
+              }
+            });
           },
 
           // Page Navigation
