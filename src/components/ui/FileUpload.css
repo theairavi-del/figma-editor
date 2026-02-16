@@ -50,11 +50,17 @@
 .file-upload-zone.dragging {
   border-color: var(--figma-accent);
   background: rgba(13, 153, 255, 0.1);
+  transform: scale(1.02);
 }
 
 .file-upload-zone.error {
   border-color: var(--figma-danger);
   background: rgba(242, 72, 34, 0.05);
+}
+
+.file-upload-zone.success {
+  border-color: var(--figma-success);
+  background: rgba(20, 174, 92, 0.05);
 }
 
 .file-upload-input {
@@ -70,29 +76,99 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  gap: 16px;
+  gap: 12px;
   cursor: pointer;
+  padding: 24px;
+  text-align: center;
 }
 
 .file-upload-icon {
-  color: var(--figma-accent);
+  font-size: 32px;
   opacity: 0.8;
+  transition: transform 0.2s ease;
 }
 
 .file-upload-icon.error {
   color: var(--figma-danger);
 }
 
+.file-upload-icon.success {
+  color: var(--figma-success);
+}
+
+.file-upload-zone:hover .file-upload-icon {
+  transform: translateY(-2px);
+}
+
 .file-upload-text {
   font-size: 14px;
   color: var(--figma-text-secondary);
+  line-height: 1.5;
 }
 
 .file-upload-link {
   color: var(--figma-accent);
   font-weight: 500;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  transition: text-decoration-color 0.2s ease;
 }
 
+.file-upload-link:hover {
+  text-decoration-color: var(--figma-accent);
+}
+
+.file-upload-recent {
+  font-size: 12px;
+  color: var(--figma-text-muted);
+  margin-top: 8px;
+}
+
+.file-upload-retry {
+  padding: 8px 16px;
+  background: var(--figma-accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  z-index: 10;
+}
+
+.file-upload-retry:hover {
+  background: var(--figma-accent-hover);
+}
+
+/* Progress Bar */
+.file-upload-progress {
+  width: 100%;
+  max-width: 200px;
+  height: 6px;
+  background: var(--figma-border);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+  margin-top: 8px;
+}
+
+.file-upload-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--figma-accent), var(--figma-accent-hover));
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.file-upload-progress-text {
+  position: absolute;
+  top: -18px;
+  right: 0;
+  font-size: 11px;
+  color: var(--figma-text-muted);
+}
+
+/* Spinner */
 .file-upload-spinner {
   width: 48px;
   height: 48px;
@@ -141,12 +217,39 @@
 /* Formats */
 .file-upload-formats {
   margin-top: 32px;
-  padding: 12px 24px;
+  padding: 16px 24px;
   background: var(--figma-bg-secondary);
   border-radius: 6px;
+  text-align: center;
 }
 
 .file-upload-formats p {
   font-size: 12px;
   color: var(--figma-text-muted);
+  margin: 4px 0;
+}
+
+.file-upload-limits {
+  font-size: 11px !important;
+  opacity: 0.8;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .file-upload-container {
+    padding: 24px;
+  }
+
+  .file-upload-branding h1 {
+    font-size: 22px;
+  }
+
+  .file-upload-zone {
+    height: 200px;
+  }
+
+  .file-upload-info {
+    flex-direction: column;
+    gap: 24px;
+  }
 }

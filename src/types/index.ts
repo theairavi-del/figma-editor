@@ -58,6 +58,7 @@ export interface ProjectFile {
   path: string;
   content: string;
   type: 'html' | 'css' | 'js' | 'image' | 'other';
+  size?: number;
 }
 
 export interface Project {
@@ -66,6 +67,7 @@ export interface Project {
   files: ProjectFile[];
   rootHtmlPath: string;
   modifiedAt: number;
+  totalSize?: number;
 }
 
 // Editor state
@@ -121,6 +123,20 @@ export interface FileUploadResult {
   success: boolean;
   project?: Project;
   error?: string;
+}
+
+// File validation
+export interface FileValidationResult {
+  valid: boolean;
+  error?: string;
+}
+
+// Progress tracking
+export interface FileProgress {
+  stage: 'reading' | 'parsing' | 'extracting' | 'processing' | 'finalizing' | 'complete' | 'error';
+  percent: number;
+  current?: number;
+  total?: number;
 }
 
 // Element modification

@@ -1,45 +1,175 @@
 import JSZip from 'jszip';
-import type { Project, ProjectFile, FileUploadResult, ElementData } from '../types';
+import type { Project, ProjectFile, FileUploadResult, ElementData, FileValidationResult, FileProgress } from '../types';
+
+// Configuration constants
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+const MAX_FILES_COUNT = 500;
 
 /**
- * Process a ZIP file and extract all contents
+ * Validate file before processing
  */
-export async function processZipFile(file: File): Promise<FileUploadResult> {
+export function validateFile(file: File): FileValidationResult {
+  // Check file size
+  if (file.size > MAX_FILE_SIZE) {
+    return {
+      valid: false,
+      error: `File size (${formatFileSize(file.size)}) exceeds maximum allowed (${formatFileSize(MAX_FILE_SIZE)})`
+    };
+  }
+
+  // Check file extension
+  if (!file.name.endsWith('.zip')) {
+    return {
+      valid: false,
+      error: 'Please upload a ZIP file (.zip extension required)'
+    };
+  }
+
+  // Check if file is empty
+  if (file.size === 0) {
+    return {
+      valid: false,
+      error: 'File is empty'
+    };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Format file size for display
+ */
+export function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+/**
+ * Process a ZIP file and extract all contents with progress tracking
+ */
+export async function processZipFile(
+  file: File,
+  onProgress?: (progress: FileProgress) => void
+): Promise<FileUploadResult> {
+  // Validate file first
+  const validation = validateFile(file);
+  if (!validation.valid) {
+    return {
+      success: false,
+      error: validation.error
+    };
+  }
+
   try {
-    const zip = await JSZip.loadAsync(file);
+    onProgress?.({ stage: 'reading', percent: 10 });
+
+    // Read the ZIP file
+    const zipData = await file.arrayBuffer();
+    
+    onProgress?.({ stage: 'parsing', percent: 25 });
+    
+    const zip = await JSZip.loadAsync(zipData);
     const files: ProjectFile[] = [];
     let rootHtmlPath = '';
 
-    // Extract all files from ZIP
+    // Get list of files
+    const zipEntries: { path: string; entry: JSZip.JSZipObject }[] = [];
+    zip.forEach((relativePath, zipEntry) => {
+      if (!zipEntry.dir) {
+        zipEntries.push({ path: relativePath, entry: zipEntry });
+      }
+    });
+
+    // Check file count
+    if (zipEntries.length > MAX_FILES_COUNT) {
+      return {
+        success: false,
+        error: `ZIP contains too many files (${zipEntries.length}). Maximum allowed: ${MAX_FILES_COUNT}`
+      };
+    }
+
+    // Check for potentially dangerous files
+    const dangerousFiles = zipEntries.filter(({ path }) => {
+      const lowerPath = path.toLowerCase();
+      return lowerPath.endsWith('.exe') || 
+             lowerPath.endsWith('.dll') || 
+             lowerPath.endsWith('.bat') ||
+             lowerPath.endsWith('.sh') ||
+             lowerPath.includes('__MACOSX');
+    });
+
+    if (dangerousFiles.length > 0) {
+      return {
+        success: false,
+        error: `ZIP contains unsupported file types. Please remove: ${dangerousFiles.map(f => f.path).join(', ')}`
+      };
+    }
+
+    onProgress?.({ stage: 'extracting', percent: 40, current: 0, total: zipEntries.length });
+
+    // Extract all files from ZIP with progress
+    let processedCount = 0;
     const filePromises: Promise<void>[] = [];
 
-    zip.forEach((relativePath, zipEntry) => {
-      if (zipEntry.dir) return;
-
-      const promise = zipEntry.async('text').then(content => {
-        const type = getFileType(relativePath);
-        
-        files.push({
-          path: relativePath,
-          content,
-          type
-        });
-
-        // Find root HTML file
-        if (type === 'html' && !rootHtmlPath) {
-          // Prefer index.html or the HTML file at root level
-          if (relativePath.toLowerCase().endsWith('index.html') || 
-              !relativePath.includes('/')) {
-            rootHtmlPath = relativePath;
+    for (const { path: relativePath, entry: zipEntry } of zipEntries) {
+      const promise = (async () => {
+        try {
+          // Check file extension
+          const ext = relativePath.split('.').pop()?.toLowerCase() || '';
+          const isBinary = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'ico'].includes(ext);
+          
+          // Read content appropriately
+          let content: string;
+          if (isBinary) {
+            // For binary files, we'll store a placeholder or base64
+            const blob = await zipEntry.async('blob');
+            content = URL.createObjectURL(blob); // Store as blob URL for images
+          } else {
+            content = await zipEntry.async('text');
           }
+
+          const type = getFileType(relativePath);
+          
+          files.push({
+            path: relativePath,
+            content,
+            type,
+            size: content.length
+          });
+
+          // Find root HTML file
+          if (type === 'html' && !rootHtmlPath) {
+            // Prefer index.html or the HTML file at root level
+            const lowerPath = relativePath.toLowerCase();
+            if (lowerPath.endsWith('index.html') || !relativePath.includes('/')) {
+              rootHtmlPath = relativePath;
+            }
+          }
+
+          processedCount++;
+          onProgress?.({ 
+            stage: 'extracting', 
+            percent: 40 + Math.round((processedCount / zipEntries.length) * 30),
+            current: processedCount,
+            total: zipEntries.length 
+          });
+        } catch (err) {
+          console.warn(`Failed to extract ${relativePath}:`, err);
+          // Continue processing other files
         }
-      });
+      })();
 
       filePromises.push(promise);
-    });
+    }
 
     await Promise.all(filePromises);
 
+    onProgress?.({ stage: 'finalizing', percent: 75 });
+
+    // Validate we found HTML files
     if (!rootHtmlPath && files.some(f => f.type === 'html')) {
       rootHtmlPath = files.find(f => f.type === 'html')!.path;
     }
@@ -47,11 +177,13 @@ export async function processZipFile(file: File): Promise<FileUploadResult> {
     if (!rootHtmlPath) {
       return {
         success: false,
-        error: 'No HTML file found in the ZIP archive'
+        error: 'No HTML file found in the ZIP archive. Please include at least one HTML file.'
       };
     }
 
     // Process HTML files to add visual IDs with shared counter
+    onProgress?.({ stage: 'processing', percent: 85 });
+    
     let globalIdCounter = 0;
     const processedFiles = files.map(file => {
       if (file.type === 'html') {
@@ -73,12 +205,15 @@ export async function processZipFile(file: File): Promise<FileUploadResult> {
       return file;
     });
 
+    onProgress?.({ stage: 'complete', percent: 100 });
+
     const project: Project = {
       id: generateId(),
-      name: file.name.replace('.zip', ''),
+      name: sanitizeProjectName(file.name.replace(/\.zip$/i, '')),
       files: processedFiles,
       rootHtmlPath,
-      modifiedAt: Date.now()
+      modifiedAt: Date.now(),
+      totalSize: file.size
     };
 
     return {
@@ -86,11 +221,43 @@ export async function processZipFile(file: File): Promise<FileUploadResult> {
       project
     };
   } catch (error) {
+    console.error('ZIP processing error:', error);
+    
+    // Provide user-friendly error messages
+    if (error instanceof Error) {
+      if (error.message.includes('encrypted')) {
+        return {
+          success: false,
+          error: 'ZIP file is password protected. Please remove the password and try again.'
+        };
+      }
+      if (error.message.includes('corrupted') || error.message.includes('invalid')) {
+        return {
+          success: false,
+          error: 'ZIP file appears to be corrupted. Please check the file and try again.'
+        };
+      }
+      return {
+        success: false,
+        error: `Failed to process ZIP file: ${error.message}`
+      };
+    }
+    
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to process ZIP file'
+      error: 'Failed to process ZIP file. Please try again with a different file.'
     };
   }
+}
+
+/**
+ * Sanitize project name for safe use
+ */
+function sanitizeProjectName(name: string): string {
+  return name
+    .replace(/[^a-zA-Z0-9-_\s]/g, '')
+    .trim()
+    .substring(0, 50) || 'Untitled Project';
 }
 
 /**
@@ -241,21 +408,38 @@ export function buildHtmlDocument(project: Project): string {
 }
 
 /**
- * Create a ZIP file from project files
+ * Create a ZIP file from project files with progress tracking
  */
-export async function createZipFromProject(project: Project): Promise<Blob> {
+export async function createZipFromProject(
+  project: Project,
+  onProgress?: (percent: number) => void
+): Promise<Blob> {
   const zip = new JSZip();
+  const totalFiles = project.files.length;
 
-  project.files.forEach(file => {
+  project.files.forEach((file, index) => {
     // Remove injected styles when exporting
     let content = file.content;
     if (file.type === 'html') {
       content = content.replace(/<style data-injected="true">[\s\S]*?<\/style>\n?/g, '');
     }
     zip.file(file.path, content);
+    
+    onProgress?.(Math.round(((index + 1) / totalFiles) * 80));
   });
 
-  return zip.generateAsync({ type: 'blob' });
+  onProgress?.(90);
+
+  const blob = await zip.generateAsync({ 
+    type: 'blob',
+    compression: 'DEFLATE',
+    compressionOptions: { level: 6 }
+  }, (metadata) => {
+    onProgress?.(90 + Math.round(metadata.percent * 0.1));
+  });
+
+  onProgress?.(100);
+  return blob;
 }
 
 /**
@@ -269,7 +453,7 @@ function escapeRegex(string: string): string {
  * Convert pixels to a number
  */
 export function parsePixels(value: string): number | null {
-  const match = value.match(/^([\d.]+)px$/);
+  const match = value.match(/^(\d+(?:\.\d+)?)px$/);
   return match ? parseFloat(match[1]) : null;
 }
 
@@ -278,4 +462,27 @@ export function parsePixels(value: string): number | null {
  */
 export function toPixels(value: number): string {
   return `${value}px`;
+}
+
+/**
+ * Retry a function with exponential backoff
+ */
+export async function withRetry<T>(
+  fn: () => Promise<T>,
+  options: { maxRetries?: number; delayMs?: number } = {}
+): Promise<T> {
+  const { maxRetries = 3, delayMs = 1000 } = options;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (attempt === maxRetries) throw error;
+      
+      const delay = delayMs * Math.pow(2, attempt);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw new Error('Retry failed');
 }
