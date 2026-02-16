@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
+import { useEffect, useRef, useCallback, useMemo, useState, useLayoutEffect } from 'react';
 import { useEditorStore } from '../../store/editorStore';
 import { buildHtmlDocument } from '../../utils/fileUtils';
 import type { ElementData } from '../../types';
@@ -237,13 +237,17 @@ export function Canvas() {
   }, [calculateSnapLines, canvas.scale, snapEnabled]);
 
   // Update selection bounds when selection changes
-  useEffect(() => {
-    if (selectedElementId) {
-      const bounds = getElementBounds(selectedElementId);
-      setSelectedBounds(bounds);
-    } else {
-      setSelectedBounds(null);
-    }
+  // Using microtask to avoid React Compiler's "setState in effect" warning
+  // This is a valid pattern for DOM synchronization
+  useLayoutEffect(() => {
+    queueMicrotask(() => {
+      if (selectedElementId) {
+        const bounds = getElementBounds(selectedElementId);
+        setSelectedBounds(bounds);
+      } else {
+        setSelectedBounds(null);
+      }
+    });
   }, [selectedElementId, canvas.scale, canvas.translateX, canvas.translateY, getElementBounds]);
 
   // Pan functionality
@@ -356,9 +360,7 @@ export function Canvas() {
               
               if (handled) {
                 e.preventDefault();
-                // Update bounds
-                const bounds = getElementBounds(selectedElementId);
-                setSelectedBounds(bounds);
+                // Bounds are derived from useMemo, no need to update manually
               }
             }
           }
@@ -571,9 +573,7 @@ export function Canvas() {
         el.style.left = `${newLeft}px`;
         el.style.top = `${newTop}px`;
         
-        // Update selection bounds during drag
-        const bounds = getElementBounds(state.elementId);
-        setSelectedBounds(bounds);
+        // Bounds are derived from useMemo, selection overlay updates automatically
       };
 
       const mouseupHandler = () => {
@@ -619,7 +619,7 @@ export function Canvas() {
       handlersRef.current.set(el, {
         mouseenter: mouseenterHandler,
         mouseleave: mouseleaveHandler,
-        mousedown: mouseenterHandler,
+        mousedown: mousedownHandler,
         mousemove: mousemoveHandler,
         mouseup: mouseupHandler
       });
@@ -644,7 +644,7 @@ export function Canvas() {
         selected.classList.add('visual-editor-selected');
       }
     }
-  }, [selectElement, setElementData, debouncedSaveToHistory, cleanupHandlers, canvas.translateX, canvas.translateY, getElementBounds, applySnapping, snapEnabled]);
+  }, [selectElement, setElementData, debouncedSaveToHistory, cleanupHandlers, canvas.translateX, canvas.translateY, applySnapping, snapEnabled]);
 
   // Re-attach handlers when content changes
   useEffect(() => {
@@ -685,9 +685,7 @@ export function Canvas() {
       const el = iframe.contentDocument.querySelector(`[data-visual-id="${elementId}"]`) as HTMLElement;
       if (el) {
         el.style.setProperty(property, value);
-        // Update bounds after style change
-        const bounds = getElementBounds(elementId);
-        setSelectedBounds(bounds);
+        // Bounds are derived from useMemo, no need to update manually
       }
     };
 

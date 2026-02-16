@@ -6,24 +6,23 @@ interface ShortcutFeedbackProps {
 }
 
 export function ShortcutFeedback({ action }: ShortcutFeedbackProps) {
-  const [visible, setVisible] = useState(false);
+  // State for animation - initialized on mount
+  const [visible, setVisible] = useState(true);
   const [progress, setProgress] = useState(100);
 
   useEffect(() => {
-    setVisible(true);
-    setProgress(100);
-
     // Animate progress bar
     const duration = 1000;
     const interval = 16; // ~60fps
     const steps = duration / interval;
     const decrement = 100 / steps;
-    
+
     let currentProgress = 100;
     const timer = setInterval(() => {
       currentProgress -= decrement;
-      setProgress(Math.max(0, currentProgress));
-      
+      const newProgress = Math.max(0, currentProgress);
+      setProgress(newProgress);
+
       if (currentProgress <= 0) {
         clearInterval(timer);
         setVisible(false);
@@ -31,7 +30,7 @@ export function ShortcutFeedback({ action }: ShortcutFeedbackProps) {
     }, interval);
 
     return () => clearInterval(timer);
-  }, [action]);
+  }, []); // Empty deps - animation runs once per mount
 
   if (!visible) return null;
 

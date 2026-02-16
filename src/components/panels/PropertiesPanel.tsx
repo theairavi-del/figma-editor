@@ -485,7 +485,7 @@ export function PropertiesPanel() {
   } = useEditorStore();
 
   // Use derived state pattern - local state mirrors props but doesn't need effect
-  const localStyles = selectedElementData?.styles ?? {};
+  const localStyles = useMemo(() => selectedElementData?.styles ?? {}, [selectedElementData?.styles]);
   const localText = selectedElementData?.textContent ?? '';
 
   const handleStyleChange = useCallback((property: string, value: string) => {
@@ -502,8 +502,8 @@ export function PropertiesPanel() {
     saveToHistory();
   }, [saveToHistory]);
 
-  // Extract spacing values
-  const getSpacingValue = (property: string, shorthand: string) => {
+  // Extract spacing values - wrapped in useCallback for stable reference
+  const getSpacingValue = useCallback((property: string, shorthand: string) => {
     const specific = localStyles[property];
     const short = localStyles[shorthand];
     if (specific) return specific;
@@ -516,21 +516,21 @@ export function PropertiesPanel() {
       if (property.includes('left')) return parts[3] || parts[1] || parts[0] ? `${parts[3] || parts[1] || parts[0]}px` : '';
     }
     return '';
-  };
+  }, [localStyles]);
 
   const padding = useMemo(() => ({
     top: getSpacingValue('padding-top', 'padding'),
     right: getSpacingValue('padding-right', 'padding'),
     bottom: getSpacingValue('padding-bottom', 'padding'),
     left: getSpacingValue('padding-left', 'padding'),
-  }), [localStyles]);
+  }), [getSpacingValue]);
 
   const margin = useMemo(() => ({
     top: getSpacingValue('margin-top', 'margin'),
     right: getSpacingValue('margin-right', 'margin'),
     bottom: getSpacingValue('margin-bottom', 'margin'),
     left: getSpacingValue('margin-left', 'margin'),
-  }), [localStyles]);
+  }), [getSpacingValue]);
 
   const handlePaddingChange = (side: 'top' | 'right' | 'bottom' | 'left', value: string) => {
     const property = `padding-${side}`;

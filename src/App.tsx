@@ -1,6 +1,6 @@
 // App component
 import { useEditorStore } from './store/editorStore';
-import { useKeyboardShortcuts, getAllShortcuts } from './hooks/useKeyboardShortcuts';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { Toolbar } from './components/toolbar/Toolbar';
 import { LeftSidebar } from './components/panels/LeftSidebar';
 import { RightSidebar } from './components/panels/RightSidebar';
@@ -41,10 +41,9 @@ function App() {
       </div>
       {isLoading && <LoadingOverlay />}
       {error && <ErrorToast message={error} onClose={clearError} />}
-      {feedback && <ShortcutFeedback action={feedback.action} />}
+      {feedback && <ShortcutFeedback key={feedback.action} action={feedback.action} />}
     </div>
   );
 }
 
 export default App;
-export { getAllShortcuts };

@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef, useState } from 'react';
+import { useEffect, useCallback, useRef, useState, useMemo } from 'react';
 import { useEditorStore } from '../store/editorStore';
 // Keyboard shortcut types
 
@@ -51,8 +51,8 @@ export function useKeyboardShortcuts() {
     }, 1000);
   }, []);
 
-  // Define all shortcuts
-  const shortcuts: Shortcut[] = [
+  // Define all shortcuts - memoized to prevent effect re-runs on every render
+  const shortcuts = useMemo<Shortcut[]>(() => [
     // Undo/Redo
     {
       key: 'z',
@@ -88,7 +88,7 @@ export function useKeyboardShortcuts() {
       },
       description: 'Redo (alternate)'
     },
-    
+
     // Tools
     {
       key: 'v',
@@ -117,7 +117,7 @@ export function useKeyboardShortcuts() {
       description: 'Text tool',
       global: true
     },
-    
+
     // Zoom
     {
       key: '+',
@@ -164,7 +164,7 @@ export function useKeyboardShortcuts() {
       },
       description: 'Fit to screen'
     },
-    
+
     // Selection
     {
       key: 'Escape',
@@ -193,7 +193,7 @@ export function useKeyboardShortcuts() {
       description: 'Deselect',
       global: true
     },
-    
+
     // History flush (force save)
     {
       key: 's',
@@ -204,7 +204,7 @@ export function useKeyboardShortcuts() {
       },
       description: 'Force save'
     },
-    
+
     // Delete
     {
       key: 'Delete',
@@ -222,7 +222,7 @@ export function useKeyboardShortcuts() {
       },
       description: 'Delete selected'
     },
-  ];
+  ], [canUndo, canRedo, undo, redo, setActiveTool, zoomIn, zoomOut, resetZoom, selectElement, flushHistory, showFeedback]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
