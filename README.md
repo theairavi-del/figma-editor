@@ -43,16 +43,42 @@ npm run build
 
 ## Keyboard Shortcuts
 
+### Tools
 | Shortcut | Action |
 |----------|--------|
 | `V` | Select tool |
-| `H` | Pan tool |
+| `H` | Hand/Pan tool |
 | `T` | Text tool |
+
+### History
+| Shortcut | Action |
+|----------|--------|
 | `Ctrl/Cmd + Z` | Undo |
 | `Ctrl/Cmd + Shift + Z` | Redo |
 | `Ctrl/Cmd + Y` | Redo (alternative) |
-| `Esc` | Deselect element |
+
+### Zoom
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl/Cmd + +` | Zoom in |
+| `Ctrl/Cmd + -` | Zoom out |
+| `Ctrl/Cmd + 0` | Reset zoom |
+| `Ctrl/Cmd + 1` | Fit to screen |
 | `Ctrl/Cmd + Scroll` | Zoom in/out |
+
+### Selection
+| Shortcut | Action |
+|----------|--------|
+| `Esc` or `D` | Deselect element |
+| `Delete` / `Backspace` | Delete selected (coming soon) |
+| `Arrow Keys` | Nudge selected element 1px |
+| `Shift + Arrow` | Nudge selected element 10px |
+
+### Canvas
+| Shortcut | Action |
+|----------|--------|
+| `Space + Drag` | Pan canvas |
+| `Double-click zoom indicator` | Reset zoom to 100% |
 
 ## Project Structure
 
